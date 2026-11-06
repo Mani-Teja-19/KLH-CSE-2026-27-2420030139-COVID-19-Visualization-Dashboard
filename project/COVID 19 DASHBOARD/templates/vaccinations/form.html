@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Record Vaccination{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <i class="fa-solid fa-syringe text-teal"></i> Record Vaccination Administration
+    </h1>
+    <p class="page-subtitle">Log citizen vaccine doses, batch numbers, center locations, and generate vaccination passports</p>
+  </div>
+  <a href="{{ url_for('vaccinations.index') }}" class="btn btn-sm btn-secondary-custom">
+    <i class="fa-solid fa-arrow-left"></i> Back to Vaccinations List
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="custom-card glass-card">
+      <form method="POST" action="{{ url_for('vaccinations.create') }}">
+        
+        <div class="mb-3">
+          <label for="member_id" class="form-label">Select Registered Citizen <span class="text-danger">*</span></label>
+          <select class="form-select" id="member_id" name="member_id" required>
+            <option value="">-- Choose Member --</option>
+            {% for m in members %}
+              <option value="{{ m.id }}">{{ m.full_name }} ({{ m.member_code }}) - Current: {{ m.vaccination_status }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label for="dose_number" class="form-label">Dose Administered <span class="text-danger">*</span></label>
+            <select class="form-select" id="dose_number" name="dose_number" required>
+              <option value="1">Dose 1 (First Dose)</option>
+              <option value="2">Dose 2 (Second / Complete)</option>
+              <option value="3">Dose 3 (Precaution / Booster)</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="vaccine_name" class="form-label">Vaccine Brand <span class="text-danger">*</span></label>
+            <select class="form-select" id="vaccine_name" name="vaccine_name" required>
+              <option value="Covishield">Covishield (AstraZeneca)</option>
+              <option value="Covaxin">Covaxin (Bharat Biotech)</option>
+              <option value="Pfizer">Pfizer-BioNTech</option>
+              <option value="Moderna">Moderna</option>
+              <option value="Sputnik V">Sputnik V</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label for="vaccination_date" class="form-label">Administration Date <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" id="vaccination_date" name="vaccination_date" required>
+          </div>
+          <div class="col-md-6">
+            <label for="batch_number" class="form-label">Batch / Lot Number</label>
+            <input type="text" class="form-control" id="batch_number" name="batch_number" placeholder="e.g. VAC-B452X">
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label for="center_name" class="form-label">Vaccination Center / Hospital <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="center_name" name="center_name" placeholder="e.g. City Apex Covid Care Hospital" required>
+          </div>
+          <div class="col-md-6">
+            <label for="vaccinated_by" class="form-label">Administered By (Vaccinator)</label>
+            <input type="text" class="form-control" id="vaccinated_by" name="vaccinated_by" placeholder="e.g. Staff Nurse Priya M.">
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+          <a href="{{ url_for('vaccinations.index') }}" class="btn btn-secondary-custom">Cancel</a>
+          <button type="submit" class="btn btn-primary-custom shadow">
+            <i class="fa-solid fa-check me-1"></i> Issue Certificate & Save Record
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

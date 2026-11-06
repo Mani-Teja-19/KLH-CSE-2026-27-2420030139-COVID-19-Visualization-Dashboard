@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ place.place_name }} - Place Details{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="d-flex align-items-center gap-2">
+      <h1 class="page-title mb-0">{{ place.place_name }}</h1>
+      {% if place.affected_status == 'Affected' %}
+        <span class="badge-status badge-active"><span class="pulse-dot pulse-red"></span> Hotspot / Affected</span>
+      {% else %}
+        <span class="badge-status badge-safe"><span class="pulse-dot pulse-green"></span> Safe Zone</span>
+      {% endif %}
+    </div>
+    <p class="page-subtitle">
+      {{ place.village_city }}, {{ place.mandal_taluk }}, {{ place.district }}, {{ place.state }} - PIN: {{ place.pincode }}
+    </p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <a href="{{ url_for('places.edit', id=place.id) }}" class="btn btn-sm btn-secondary-custom">
+      <i class="fa-solid fa-pen-to-square text-primary"></i> Edit Place
+    </a>
+    <a href="{{ url_for('members.create') }}" class="btn btn-sm btn-primary-custom">
+      <i class="fa-solid fa-user-plus"></i> Register Member Here
+    </a>
+  </div>
+</div>
+
+<!-- Place Stats Summary Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-3 col-sm-6">
+    <div class="stat-card stat-info">
+      <div class="stat-icon-wrapper"><i class="fa-solid fa-users"></i></div>
+      <div class="stat-content">
+        <div class="stat-label">Total Population</div>
+        <div class="stat-number">{{ "{:,}".format(place.total_population) }}</div>
+        <div class="stat-subtext text-muted">{{ place.total_families }} Families</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-3 col-sm-6">
+    <div class="stat-card stat-purple">
+      <div class="stat-icon-wrapper"><i class="fa-solid fa-virus"></i></div>
+      <div class="stat-content">
+        <div class="stat-label">Positive Cases</div>
+        <div class="stat-number text-purple">{{ place.positive_cases }}</div>
+        <div class="stat-subtext text-muted">Cumulative Count</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-3 col-sm-6">
+    <div class="stat-card stat-warning">
+      <div class="stat-icon-wrapper"><i class="fa-solid fa-bed-pulse"></i></div>
+      <div class="stat-content">
+        <div class="stat-label">Active Cases</div>
+        <div class="stat-number text-warning">{{ place.active_cases }}</div>
+        <div class="stat-subtext text-warning">Under Quarantine</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-3 col-sm-6">
+    <div class="stat-card stat-success">
+      <div class="stat-icon-wrapper"><i class="fa-solid fa-syringe"></i></div>
+      <div class="stat-content">
+        <div class="stat-label">Vaccinated Citizens</div>
+        <div class="stat-number text-success">{{ place.vaccinated_count }}</div>
+        <div class="stat-subtext text-muted">{{ place.not_vaccinated_count }} Unvaccinated</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Enrolled Citizens in this Place -->
+<div class="custom-table-card">
+  <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+    <div class="fw-bold d-flex align-items-center gap-2">
+      <i class="fa-solid fa-address-book text-primary"></i> Registered Residents & Medical Profiles ({{ members|length }})
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="custom-table mb-0">
+      <thead>
+        <tr>
+          <th>Member Code</th>
+          <th>Full Name</th>
+          <th>Age & Gender</th>
+          <th>COVID Status</th>
+          <th>Vaccination Status</th>
+          <th>Vaccine Brand</th>
+          <th>Contact</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in members %}
+        <tr>
+          <td><span class="fw-bold text-muted">{{ m.member_code }}</span></td>
+          <td>
+            <a href="{{ url_for('members.view', id=m.id) }}" class="fw-bold text-primary text-decoration-none">
+              {{ m.full_name }}
+            </a>
+            <div class="small text-muted">{{ m.occupation or 'Resident' }}</div>
+          </td>
+          <td>{{ m.age }} yrs • {{ m.gender }}</td>
+          <td>
+            {% if m.covid_status == 'Active' %}
+              <span class="badge-status badge-active"><span class="pulse-dot pulse-red"></span> Active</span>
+            {% elif m.covid_status == 'Recovered' %}
+              <span class="badge-status badge-recovered">Recovered</span>
+            {% elif m.covid_status == 'Deceased' %}
+              <span class="badge-status badge-deceased">Deceased</span>
+            {% else %}
+              <span class="badge-status badge-negative">Negative</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if m.vaccination_status == 'Fully Vaccinated' %}
+              <span class="badge-status badge-vax-full"><i class="fa-solid fa-check-double me-1"></i> Fully Vaccinated</span>
+            {% elif m.vaccination_status == 'Partially Vaccinated' %}
+              <span class="badge-status badge-vax-partial"><i class="fa-solid fa-check me-1"></i> Partially Vaccinated</span>
+            {% else %}
+              <span class="badge-status badge-vax-none">Not Vaccinated</span>
+            {% endif %}
+          </td>
+          <td>{{ m.vaccine_name or '-' }}</td>
+          <td>{{ m.mobile_number }}</td>
+          <td>
+            <a href="{{ url_for('members.view', id=m.id) }}" class="action-btn" title="View Medical Profile">
+              <i class="fa-solid fa-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="text-center py-4 text-muted">No members registered in this jurisdiction yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

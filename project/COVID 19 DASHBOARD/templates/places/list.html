@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}Place Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <i class="fa-solid fa-map-location-dot text-primary"></i> Place Management
+    </h1>
+    <p class="page-subtitle">Manage jurisdictions, monitor containment zones, and track district populations</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <button class="btn btn-sm btn-secondary-custom" onclick="exportTableToCSV('placesTable', 'places_directory')">
+      <i class="fa-solid fa-file-csv text-primary"></i> Export CSV
+    </button>
+    <a href="{{ url_for('places.create') }}" class="btn btn-sm btn-primary-custom shadow">
+      <i class="fa-solid fa-plus"></i> Add New Place
+    </a>
+  </div>
+</div>
+
+<!-- Search & Filter Card -->
+<div class="custom-card mb-4">
+  <form method="GET" action="{{ url_for('places.index') }}" class="row g-3 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label">Search Place / Village / Pincode</label>
+      <div class="input-group">
+        <span class="input-group-text bg-body-tertiary"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+        <input type="text" class="form-control" name="search" placeholder="Search by name or pincode..." value="{{ search }}">
+      </div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Filter by District</label>
+      <select class="form-select" name="district">
+        <option value="">All Districts</option>
+        {% for d in districts %}
+          <option value="{{ d }}" {% if selected_district == d %}selected{% endif %}>{{ d }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Affected Status</label>
+      <select class="form-select" name="status">
+        <option value="">All Statuses</option>
+        <option value="Affected" {% if selected_status == 'Affected' %}selected{% endif %}>Affected (Hotspots)</option>
+        <option value="Not Affected" {% if selected_status == 'Not Affected' %}selected{% endif %}>Not Affected (Safe)</option>
+      </select>
+    </div>
+    <div class="col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-primary-custom w-100 justify-content-center">
+        <i class="fa-solid fa-filter"></i> Filter
+      </button>
+      <a href="{{ url_for('places.index') }}" class="btn btn-secondary-custom" title="Reset Filters">
+        <i class="fa-solid fa-rotate-left"></i>
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Places Table -->
+<div class="custom-table-card">
+  <div class="table-responsive">
+    <table class="custom-table mb-0" id="placesTable">
+      <thead>
+        <tr>
+          <th>Place ID</th>
+          <th>Place Name</th>
+          <th>Village / Mandal</th>
+          <th>District / State</th>
+          <th>Population</th>
+          <th>Status</th>
+          <th>Positive</th>
+          <th>Active</th>
+          <th>Recovered</th>
+          <th>Deaths</th>
+          <th>Vaccinated</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in places %}
+        <tr>
+          <td><span class="fw-bold text-muted">#PLC-{{ p.id }}</span></td>
+          <td>
+            <a href="{{ url_for('places.view', id=p.id) }}" class="fw-bold text-primary text-decoration-none">
+              {{ p.place_name }}
+            </a>
+            <div class="small text-muted">Pin: {{ p.pincode }}</div>
+          </td>
+          <td>
+            <div>{{ p.village_city }}</div>
+            <div class="small text-muted">{{ p.mandal_taluk }}</div>
+          </td>
+          <td>
+            <div>{{ p.district }}</div>
+            <div class="small text-muted">{{ p.state }}</div>
+          </td>
+          <td class="fw-semibold">{{ "{:,}".format(p.total_population) }}</td>
+          <td>
+            {% if p.affected_status == 'Affected' %}
+              <span class="badge-status badge-active"><span class="pulse-dot pulse-red"></span> Affected</span>
+            {% else %}
+              <span class="badge-status badge-safe"><span class="pulse-dot pulse-green"></span> Safe Zone</span>
+            {% endif %}
+          </td>
+          <td class="fw-bold text-purple">{{ p.positive_cases }}</td>
+          <td class="fw-bold text-warning">{{ p.active_cases }}</td>
+          <td class="fw-bold text-success">{{ p.recovered_cases }}</td>
+          <td class="fw-bold text-danger">{{ p.death_cases }}</td>
+          <td class="fw-bold text-teal">{{ p.vaccinated_count }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-1">
+              <a href="{{ url_for('places.view', id=p.id) }}" class="action-btn" title="View Details">
+                <i class="fa-solid fa-eye"></i>
+              </a>
+              <a href="{{ url_for('places.edit', id=p.id) }}" class="action-btn" title="Edit Place">
+                <i class="fa-solid fa-pen-to-square text-primary"></i>
+              </a>
+              {% if session.get('user_role') == 'Admin' %}
+              <form action="{{ url_for('places.delete', id=p.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete place {{ p.place_name }}?');" class="d-inline">
+                <button type="submit" class="action-btn delete" title="Delete Place">
+                  <i class="fa-solid fa-trash text-danger"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="12" class="text-center py-4 text-muted">No places found matching the search criteria.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

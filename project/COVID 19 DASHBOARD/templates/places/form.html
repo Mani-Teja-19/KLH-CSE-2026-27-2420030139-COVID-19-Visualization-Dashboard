@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if place %}Edit Place - {{ place.place_name }}{% else %}Add New Place{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <i class="fa-solid fa-map-pin text-primary"></i> {% if place %}Edit Place Details{% else %}Register New Place / Jurisdiction{% endif %}
+    </h1>
+    <p class="page-subtitle">Configure administrative boundaries, population estimates, and district affiliations</p>
+  </div>
+  <a href="{{ url_for('places.index') }}" class="btn btn-sm btn-secondary-custom">
+    <i class="fa-solid fa-arrow-left"></i> Back to Places List
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="custom-card glass-card">
+      <form method="POST" action="{% if place %}{{ url_for('places.edit', id=place.id) }}{% else %} {{ url_for('places.create') }}{% endif %}">
+        
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label for="place_name" class="form-label">Place / Locality Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="place_name" name="place_name" placeholder="e.g. Green Valley Colony" value="{{ place.place_name if place else '' }}" required>
+          </div>
+          <div class="col-md-6">
+            <label for="village_city" class="form-label">Village / Ward / Sector <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="village_city" name="village_city" placeholder="e.g. Sector 4 / Ward 12" value="{{ place.village_city if place else '' }}" required>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <label for="mandal_taluk" class="form-label">Mandal / Taluk <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="mandal_taluk" name="mandal_taluk" placeholder="e.g. Central Taluk" value="{{ place.mandal_taluk if place else '' }}" required>
+          </div>
+          <div class="col-md-4">
+            <label for="district" class="form-label">District <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="district" name="district" placeholder="e.g. Central District" value="{{ place.district if place else '' }}" required>
+          </div>
+          <div class="col-md-4">
+            <label for="state" class="form-label">State <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="state" name="state" placeholder="e.g. Maharashtra" value="{{ place.state if place else 'Maharashtra' }}" required>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <label for="pincode" class="form-label">Postal Pincode <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="pincode" name="pincode" placeholder="e.g. 400001" value="{{ place.pincode if place else '' }}" required>
+          </div>
+          <div class="col-md-4">
+            <label for="total_population" class="form-label">Total Population</label>
+            <input type="number" class="form-control" id="total_population" name="total_population" placeholder="e.g. 15000" value="{{ place.total_population if place else '0' }}" min="0">
+          </div>
+          <div class="col-md-4">
+            <label for="total_families" class="form-label">Total Families</label>
+            <input type="number" class="form-control" id="total_families" name="total_families" placeholder="e.g. 3500" value="{{ place.total_families if place else '0' }}" min="0">
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+          <a href="{{ url_for('places.index') }}" class="btn btn-secondary-custom">Cancel</a>
+          <button type="submit" class="btn btn-primary-custom shadow">
+            <i class="fa-solid fa-floppy-disk me-1"></i> {% if place %}Update Place Details{% else %}Save & Register Place{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

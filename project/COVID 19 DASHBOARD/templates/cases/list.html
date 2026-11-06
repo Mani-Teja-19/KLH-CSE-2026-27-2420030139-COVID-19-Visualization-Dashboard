@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block title %}COVID Case Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <i class="fa-solid fa-bed-pulse text-danger"></i> COVID Case Management
+    </h1>
+    <p class="page-subtitle">Track patient admissions, isolation status, severity grading, oxygen, and ICU occupancy</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <button class="btn btn-sm btn-secondary-custom" onclick="exportTableToCSV('casesTable', 'covid_cases_registry')">
+      <i class="fa-solid fa-file-csv text-primary"></i> Export CSV
+    </button>
+    <a href="{{ url_for('cases.create') }}" class="btn btn-sm btn-primary-custom shadow">
+      <i class="fa-solid fa-plus"></i> Admit New Case
+    </a>
+  </div>
+</div>
+
+<!-- Key Case Metrics Header -->
+<div class="row g-3 mb-4">
+  <div class="col-lg col-sm-6">
+    <div class="stat-card stat-warning">
+      <div class="stat-icon-wrapper"><i class="fa-solid fa-virus"></i></div>
+      <div class="stat-content">
+        <div class="stat-label">Active Cases</div>
+        <div class="stat-number text-warning">{{ active_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg col-sm-6">
+    <div class="stat-card stat-danger">
+      <div class="stat-icon-wrapper"><i class="fa-solid fa-heart-pulse"></i></div>
+      <div class="stat-content">
+        <div class="stat-label">ICU Admissions</div>
+        <div class="stat-number text-danger">{{ icu_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg col-sm-6">
+    <div class="stat-card stat-info">
+      <div class="stat-icon-wrapper"><i class="fa-solid fa-lungs"></i></div>
+      <div class="stat-content">
+        <div class="stat-label">Oxygen Support</div>
+        <div class="stat-number text-info">{{ oxygen_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg col-sm-6">
+    <div class="stat-card stat-success">
+      <div class="stat-icon-wrapper"><i class="fa-solid fa-shield-heart"></i></div>
+      <div class="stat-content">
+        <div class="stat-label">Discharged / Recovered</div>
+        <div class="stat-number text-success">{{ recovered_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg col-sm-6">
+    <div class="stat-card stat-primary">
+      <div class="stat-icon-wrapper"><i class="fa-solid fa-cross"></i></div>
+      <div class="stat-content">
+        <div class="stat-label">Fatalities</div>
+        <div class="stat-number text-danger">{{ deceased_count }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="custom-card mb-4">
+  <form method="GET" action="{{ url_for('cases.index') }}" class="row g-3 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label">Search Case Code / Patient Name</label>
+      <div class="input-group">
+        <span class="input-group-text bg-body-tertiary"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+        <input type="text" class="form-control" name="search" placeholder="e.g. COV-123456 or patient name..." value="{{ search }}">
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label">Quarantine Status</label>
+      <select class="form-select" name="quarantine_status">
+        <option value="">All Statuses</option>
+        <option value="Home Isolation" {% if selected_quarantine == 'Home Isolation' %}selected{% endif %}>Home Isolation</option>
+        <option value="Hospitalized" {% if selected_quarantine == 'Hospitalized' %}selected{% endif %}>Hospitalized (General Ward)</option>
+        <option value="Oxygen Support" {% if selected_quarantine == 'Oxygen Support' %}selected{% endif %}>Oxygen Support</option>
+        <option value="ICU" {% if selected_quarantine == 'ICU' %}selected{% endif %}>ICU (Critical Care)</option>
+        <option value="Discharged" {% if selected_quarantine == 'Discharged' %}selected{% endif %}>Discharged / Recovered</option>
+        <option value="Deceased" {% if selected_quarantine == 'Deceased' %}selected{% endif %}>Deceased</option>
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label">Clinical Severity</label>
+      <select class="form-select" name="severity">
+        <option value="">All Severities</option>
+        <option value="Mild" {% if selected_severity == 'Mild' %}selected{% endif %}>Mild</option>
+        <option value="Moderate" {% if selected_severity == 'Moderate' %}selected{% endif %}>Moderate</option>
+        <option value="Severe" {% if selected_severity == 'Severe' %}selected{% endif %}>Severe</option>
+        <option value="Critical" {% if selected_severity == 'Critical' %}selected{% endif %}>Critical</option>
+      </select>
+    </div>
+
+    <div class="col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-primary-custom w-100 justify-content-center">
+        <i class="fa-solid fa-filter"></i> Filter
+      </button>
+      <a href="{{ url_for('cases.index') }}" class="btn btn-secondary-custom" title="Reset Filters">
+        <i class="fa-solid fa-rotate-left"></i>
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Cases Table -->
+<div class="custom-table-card">
+  <div class="table-responsive">
+    <table class="custom-table mb-0" id="casesTable">
+      <thead>
+        <tr>
+          <th>Case Code</th>
+          <th>Patient Details</th>
+          <th>Admission Date</th>
+          <th>Variant & Symptoms</th>
+          <th>Severity</th>
+          <th>Quarantine / Ward</th>
+          <th>Doctor</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in cases %}
+        <tr>
+          <td><span class="fw-bold text-primary">{{ c.case_code }}</span></td>
+          <td>
+            <a href="{{ url_for('cases.view', id=c.id) }}" class="fw-bold text-decoration-none">
+              {{ c.member.full_name if c.member else 'N/A' }}
+            </a>
+            <div class="small text-muted">{{ c.member.age }} yrs • {{ c.place.district if c.place else '-' }}</div>
+          </td>
+          <td>{{ c.admission_date.strftime('%b %d, %Y') if c.admission_date else '-' }}</td>
+          <td>
+            <div><span class="badge bg-secondary-subtle text-secondary border rounded-pill">{{ c.covid_variant }}</span></div>
+            <div class="small text-muted text-truncate" style="max-width: 180px;">{{ c.symptoms or 'Standard symptoms' }}</div>
+          </td>
+          <td>
+            <span class="badge {% if c.severity == 'Critical' %}bg-danger{% elif c.severity == 'Severe' %}bg-warning text-dark{% elif c.severity == 'Moderate' %}bg-info{% else %}bg-secondary{% endif %} rounded-pill">
+              {{ c.severity }}
+            </span>
+          </td>
+          <td>
+            {% if c.quarantine_status == 'ICU' %}
+              <span class="badge-status badge-active"><span class="pulse-dot pulse-red"></span> ICU</span>
+            {% elif c.quarantine_status == 'Oxygen Support' %}
+              <span class="badge-status badge-affected"><span class="pulse-dot pulse-amber"></span> Oxygen</span>
+            {% elif c.quarantine_status == 'Hospitalized' %}
+              <span class="badge-status badge-vax-partial">Hospitalized</span>
+            {% elif c.quarantine_status == 'Home Isolation' %}
+              <span class="badge-status badge-negative">Home Isolation</span>
+            {% elif c.quarantine_status == 'Discharged' %}
+              <span class="badge-status badge-recovered">Discharged</span>
+            {% else %}
+              <span class="badge-status badge-deceased">Deceased</span>
+            {% endif %}
+            {% if c.ward_bed_no %}
+              <div class="small text-muted">{{ c.ward_bed_no }}</div>
+            {% endif %}
+          </td>
+          <td><small class="text-secondary">{{ c.assigned_doctor or 'Attending Staff' }}</small></td>
+          <td>
+            <div class="d-flex align-items-center gap-1">
+              <a href="{{ url_for('cases.view', id=c.id) }}" class="action-btn" title="View Case">
+                <i class="fa-solid fa-eye"></i>
+              </a>
+              <a href="{{ url_for('cases.edit', id=c.id) }}" class="action-btn" title="Edit Case">
+                <i class="fa-solid fa-pen-to-square text-primary"></i>
+              </a>
+              {% if c.quarantine_status not in ['Discharged', 'Deceased'] %}
+              <form action="{{ url_for('cases.discharge', id=c.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Mark patient as discharged and recovered?');">
+                <button type="submit" class="action-btn" title="Discharge & Mark Recovered" style="color: #10b981;">
+                  <i class="fa-solid fa-check"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="text-center py-4 text-muted">No COVID cases found matching the criteria.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

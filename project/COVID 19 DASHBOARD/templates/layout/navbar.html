@@ -1,0 +1,108 @@
+<header class="top-navbar">
+  <!-- Left Controls -->
+  <div class="nav-left">
+    <!-- Desktop Collapse Button -->
+    <button class="btn-sidebar-toggle d-none d-lg-block" id="sidebarToggle" title="Toggle Sidebar">
+      <i class="fa-solid fa-bars-staggered"></i>
+    </button>
+    <!-- Mobile Drawer Button -->
+    <button class="btn-sidebar-toggle d-lg-none" id="mobileSidebarToggle" title="Open Menu">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+
+    <!-- Live Date Time Badge -->
+    <div class="d-none d-md-flex align-items-center gap-2 px-3 py-1 bg-body-tertiary rounded-pill border small">
+      <i class="fa-regular fa-clock text-primary"></i>
+      <span id="liveClock" class="fw-semibold text-secondary">Loading...</span>
+    </div>
+
+    <!-- Health System Status -->
+    <div class="d-none d-xl-flex align-items-center gap-2 px-3 py-1 bg-success-subtle text-success border border-success-subtle rounded-pill small">
+      <span class="pulse-dot pulse-green"></span>
+      <span class="fw-semibold">Real-time Surveillance Active</span>
+    </div>
+  </div>
+
+  <!-- Right Controls -->
+  <div class="nav-right">
+    <!-- Quick Add Place / Member Shortcut -->
+    <div class="dropdown d-none d-sm-block">
+      <button class="btn btn-sm btn-primary-custom dropdown-toggle" type="button" data-bs-toggle="dropdown">
+        <i class="fa-solid fa-plus"></i> Quick Action
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 py-2">
+        <li><a class="dropdown-item py-2" href="{{ url_for('places.create') }}"><i class="fa-solid fa-map-pin text-primary me-2"></i> Add New Place</a></li>
+        <li><a class="dropdown-item py-2" href="{{ url_for('members.create') }}"><i class="fa-solid fa-user-plus text-success me-2"></i> Register Member</a></li>
+        <li><a class="dropdown-item py-2" href="{{ url_for('cases.create') }}"><i class="fa-solid fa-bed-pulse text-danger me-2"></i> Admit COVID Case</a></li>
+        <li><a class="dropdown-item py-2" href="{{ url_for('vaccinations.create') }}"><i class="fa-solid fa-syringe text-info me-2"></i> Record Vaccination</a></li>
+      </ul>
+    </div>
+
+    <!-- Theme Switcher -->
+    <button class="action-btn btn-theme-toggle" title="Toggle Light/Dark Theme">
+      <i class="fa-solid fa-sun theme-toggle-icon"></i>
+    </button>
+
+    <!-- Notification Bell Tray -->
+    <div class="dropdown">
+      <button class="action-btn position-relative" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+        <i class="fa-solid fa-bell"></i>
+        {% if unread_notif_count > 0 %}
+          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notif-badge-count" style="font-size: 0.65rem;">
+            {{ unread_notif_count }}
+          </span>
+        {% endif %}
+      </button>
+      <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0" style="width: 320px; max-width: 90vw;">
+        <div class="p-3 border-bottom d-flex align-items-center justify-content-between bg-body-tertiary">
+          <span class="fw-bold fs-6">Notifications</span>
+          <a href="{{ url_for('notifications.index') }}" class="small text-primary text-decoration-none">View All</a>
+        </div>
+        <div class="list-group list-group-flush" style="max-height: 280px; overflow-y: auto;">
+          {% if recent_notifs %}
+            {% for n in recent_notifs %}
+              <a href="{{ n.target_url or url_for('notifications.index') }}" class="list-group-item list-group-item-action p-3 {% if not n.is_read %}bg-primary-subtle bg-opacity-25{% endif %}">
+                <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                  <span class="badge {% if n.alert_level == 'High' %}bg-danger{% elif n.alert_level == 'Medium' %}bg-warning text-dark{% else %}bg-info{% endif %} rounded-pill small">
+                    {{ n.category }}
+                  </span>
+                  <small class="text-muted">{{ n.created_at.strftime('%H:%M') if n.created_at else '' }}</small>
+                </div>
+                <p class="mb-1 small fw-semibold text-dark">{{ n.title }}</p>
+                <small class="text-secondary text-truncate d-block">{{ n.message }}</small>
+              </a>
+            {% endfor %}
+          {% else %}
+            <div class="p-4 text-center text-muted small">No notifications found</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- User Profile Dropdown -->
+    <div class="dropdown">
+      <button class="btn p-0 border-0 d-flex align-items-center gap-2" data-bs-toggle="dropdown">
+        <div class="avatar-circle bg-primary text-white fw-bold d-flex align-items-center justify-content-center rounded-circle" style="width: 38px; height: 38px; font-size: 0.9rem; box-shadow: 0 2px 8px rgba(13,110,253,0.3);">
+          {{ session.get('full_name', 'Admin')[:1] }}
+        </div>
+        <div class="d-none d-md-block text-start">
+          <div class="small fw-bold lh-1 text-primary-emphasis">{{ session.get('full_name', 'Administrator') }}</div>
+          <div class="text-muted lh-1 mt-1" style="font-size: 0.72rem;">{{ session.get('user_role', 'Health Admin') }}</div>
+        </div>
+        <i class="fa-solid fa-chevron-down small text-muted d-none d-md-inline ms-1"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 py-2">
+        <li class="px-3 py-2 border-bottom">
+          <div class="fw-bold">{{ session.get('full_name', 'Admin') }}</div>
+          <div class="text-muted small">@{{ session.get('username', 'admin') }}</div>
+        </li>
+        <li><a class="dropdown-item py-2" href="{{ url_for('profile.index') }}"><i class="fa-solid fa-user-gear text-secondary me-2"></i> My Profile</a></li>
+        {% if session.get('user_role') == 'Admin' %}
+        <li><a class="dropdown-item py-2" href="{{ url_for('settings.index') }}"><i class="fa-solid fa-sliders text-secondary me-2"></i> Preferences</a></li>
+        {% endif %}
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item py-2 text-danger" href="{{ url_for('auth.logout') }}"><i class="fa-solid fa-right-from-bracket me-2"></i> Log Out</a></li>
+      </ul>
+    </div>
+  </div>
+</header>

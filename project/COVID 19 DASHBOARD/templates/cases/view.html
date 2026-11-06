@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block title %}Case {{ case.case_code }} - Clinical View{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="d-flex align-items-center gap-2">
+      <h1 class="page-title mb-0">COVID-19 Case Record: {{ case.case_code }}</h1>
+      {% if case.quarantine_status == 'ICU' %}
+        <span class="badge-status badge-active"><span class="pulse-dot pulse-red"></span> ICU Critical</span>
+      {% elif case.quarantine_status == 'Oxygen Support' %}
+        <span class="badge-status badge-affected"><span class="pulse-dot pulse-amber"></span> Oxygen Support</span>
+      {% elif case.quarantine_status == 'Hospitalized' %}
+        <span class="badge-status badge-vax-partial">Hospitalized</span>
+      {% elif case.quarantine_status == 'Home Isolation' %}
+        <span class="badge-status badge-negative">Home Isolation</span>
+      {% elif case.quarantine_status == 'Discharged' %}
+        <span class="badge-status badge-recovered">Discharged / Recovered</span>
+      {% else %}
+        <span class="badge-status badge-deceased">Deceased</span>
+      {% endif %}
+    </div>
+    <p class="page-subtitle">Patient: <strong>{{ case.member.full_name if case.member else 'N/A' }}</strong> ({{ case.member.age }} yrs • {{ case.member.gender }})</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    {% if case.quarantine_status not in ['Discharged', 'Deceased'] %}
+    <form action="{{ url_for('cases.discharge', id=case.id) }}" method="POST" onsubmit="return confirm('Discharge patient and mark recovered?');">
+      <button type="submit" class="btn btn-sm btn-success shadow-sm">
+        <i class="fa-solid fa-check-double me-1"></i> Discharge & Recover
+      </button>
+    </form>
+    {% endif %}
+    <a href="{{ url_for('cases.edit', id=case.id) }}" class="btn btn-sm btn-primary-custom shadow">
+      <i class="fa-solid fa-pen-to-square"></i> Edit Case
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Patient Summary Card -->
+  <div class="col-lg-4">
+    <div class="custom-card">
+      <div class="card-header-flex">
+        <div class="card-title-main">
+          <i class="fa-solid fa-user-injured text-primary"></i> Patient Overview
+        </div>
+      </div>
+      <div class="list-group list-group-flush small">
+        <div class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted">Member ID:</span>
+          <span class="fw-bold">{{ case.member.member_code if case.member else 'N/A' }}</span>
+        </div>
+        <div class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted">Mobile:</span>
+          <span class="fw-bold">{{ case.member.mobile_number if case.member else 'N/A' }}</span>
+        </div>
+        <div class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted">Location:</span>
+          <span class="fw-bold">{{ case.place.place_name if case.place else 'N/A' }} ({{ case.place.district if case.place else '' }})</span>
+        </div>
+        <div class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted">Vaccination:</span>
+          <span class="fw-bold">{{ case.member.vaccination_status if case.member else 'Unknown' }}</span>
+        </div>
+      </div>
+      <div class="mt-3 text-center">
+        <a href="{{ url_for('members.view', id=case.member_id) }}" class="btn btn-sm btn-secondary-custom w-100">
+          <i class="fa-solid fa-id-card me-1"></i> View Full Health Passport
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clinical Case Details -->
+  <div class="col-lg-8">
+    <div class="custom-card mb-4">
+      <div class="card-header-flex">
+        <div class="card-title-main">
+          <i class="fa-solid fa-file-medical text-danger"></i> Clinical Assessment
+        </div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+          <div class="p-3 bg-body-tertiary rounded-3 border">
+            <span class="text-muted small d-block">Severity Level:</span>
+            <span class="badge {% if case.severity == 'Critical' %}bg-danger{% elif case.severity == 'Severe' %}bg-warning text-dark{% elif case.severity == 'Moderate' %}bg-info{% else %}bg-secondary{% endif %} rounded-pill mt-1">
+              {{ case.severity }}
+            </span>
+          </div>
+        </div>
+
+        <div class="col-md-3 col-6">
+          <div class="p-3 bg-body-tertiary rounded-3 border">
+            <span class="text-muted small d-block">HRCT Score:</span>
+            <strong class="fs-6 mt-1 d-block">{{ case.ct_score or 'N/A' }}</strong>
+          </div>
+        </div>
+
+        <div class="col-md-3 col-6">
+          <div class="p-3 bg-body-tertiary rounded-3 border">
+            <span class="text-muted small d-block">Identified Variant:</span>
+            <strong class="fs-6 mt-1 d-block">{{ case.covid_variant }}</strong>
+          </div>
+        </div>
+
+        <div class="col-md-3 col-6">
+          <div class="p-3 bg-body-tertiary rounded-3 border">
+            <span class="text-muted small d-block">Admission Date:</span>
+            <strong class="fs-6 mt-1 d-block">{{ case.admission_date.strftime('%b %d, %Y') if case.admission_date else '-' }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <span class="text-muted small d-block mb-1">Symptoms Reported:</span>
+        <div class="p-3 bg-body-tertiary rounded-3 border">
+          {{ case.symptoms or 'Standard respiratory infection symptoms.' }}
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <span class="text-muted small d-block mb-1">Attending Physician & Ward:</span>
+        <div class="p-3 bg-body-tertiary rounded-3 border d-flex justify-content-between">
+          <div><strong>{{ case.assigned_doctor or 'Medical Duty Team' }}</strong></div>
+          <div class="text-muted">{{ case.ward_bed_no or 'Home Quarantine' }}</div>
+        </div>
+      </div>
+
+      <div>
+        <span class="text-muted small d-block mb-1">Clinical Progression & Treatment Notes:</span>
+        <div class="p-3 bg-body-tertiary rounded-3 border">
+          {{ case.notes or 'Routine clinical monitoring protocol established.' }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

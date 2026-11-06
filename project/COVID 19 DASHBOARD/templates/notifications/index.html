@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+
+{% block title %}Notification Center{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <i class="fa-solid fa-bell text-warning"></i> Notifications & Emergency Alerts
+    </h1>
+    <p class="page-subtitle">Real-time epidemiological advisories, ICU occupancy thresholds, and containment broadcasts</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <form action="{{ url_for('notifications.mark_all_read') }}" method="POST">
+      <button type="submit" class="btn btn-sm btn-secondary-custom">
+        <i class="fa-solid fa-envelope-open me-1"></i> Mark All as Read
+      </button>
+    </form>
+    {% if session.get('user_role') == 'Admin' %}
+    <button class="btn btn-sm btn-primary-custom shadow" data-bs-toggle="modal" data-bs-target="#broadcastAlertModal">
+      <i class="fa-solid fa-bullhorn me-1"></i> Broadcast Alert
+    </button>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Category Filters -->
+<div class="custom-card mb-4">
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    <span class="fw-bold small text-muted me-2">Categories:</span>
+    <a href="{{ url_for('notifications.index') }}" class="btn btn-sm {% if not selected_category and not selected_status %}btn-primary-custom{% else %}btn-secondary-custom{% endif %}">
+      All
+    </a>
+    <a href="{{ url_for('notifications.index', status='unread') }}" class="btn btn-sm {% if selected_status == 'unread' %}btn-primary-custom{% else %}btn-secondary-custom{% endif %}">
+      Unread ({{ unread_count }})
+    </a>
+    <a href="{{ url_for('notifications.index', category='Containment Zone') }}" class="btn btn-sm {% if selected_category == 'Containment Zone' %}btn-primary-custom{% else %}btn-secondary-custom{% endif %}">
+      Containment Zones
+    </a>
+    <a href="{{ url_for('notifications.index', category='Emergency') }}" class="btn btn-sm {% if selected_category == 'Emergency' %}btn-primary-custom{% else %}btn-secondary-custom{% endif %}">
+      Emergencies
+    </a>
+    <a href="{{ url_for('notifications.index', category='Vaccination') }}" class="btn btn-sm {% if selected_category == 'Vaccination' %}btn-primary-custom{% else %}btn-secondary-custom{% endif %}">
+      Vaccination Drives
+    </a>
+    <a href="{{ url_for('notifications.index', category='Recovery') }}" class="btn btn-sm {% if selected_category == 'Recovery' %}btn-primary-custom{% else %}btn-secondary-custom{% endif %}">
+      Recoveries
+    </a>
+  </div>
+</div>
+
+<!-- Notification Feed List -->
+<div class="row g-3">
+  {% for n in notifications %}
+  <div class="col-12" id="notif-item-{{ n.id }}">
+    <div class="custom-card p-3 d-flex align-items-center justify-content-between {% if not n.is_read %}border-primary border-2{% endif %}">
+      <div class="d-flex align-items-center gap-3">
+        <div class="stat-icon-wrapper {% if n.alert_level == 'High' %}stat-danger{% elif n.alert_level == 'Medium' %}stat-warning{% else %}stat-teal{% endif %}" style="width: 48px; height: 48px; font-size: 1.2rem;">
+          {% if n.category == 'Containment Zone' %}
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          {% elif n.category == 'Vaccination' %}
+            <i class="fa-solid fa-syringe"></i>
+          {% elif n.category == 'Recovery' %}
+            <i class="fa-solid fa-heart-pulse"></i>
+          {% else %}
+            <i class="fa-solid fa-shield-virus"></i>
+          {% endif %}
+        </div>
+        <div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <h6 class="fw-bold mb-0 text-dark">{{ n.title }}</h6>
+            <span class="badge {% if n.alert_level == 'High' %}bg-danger{% elif n.alert_level == 'Medium' %}bg-warning text-dark{% else %}bg-info{% endif %} rounded-pill small">
+              {{ n.category }}
+            </span>
+            {% if not n.is_read %}
+              <span class="badge bg-primary rounded-pill small">NEW</span>
+            {% endif %}
+          </div>
+          <p class="text-secondary small mb-1">{{ n.message }}</p>
+          <small class="text-muted"><i class="fa-regular fa-clock me-1"></i> {{ n.created_at.strftime('%B %d, %Y at %H:%M') if n.created_at else '' }}</small>
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        {% if n.target_url %}
+        <a href="{{ n.target_url }}" class="btn btn-sm btn-primary-custom">
+          Action Link &rarr;
+        </a>
+        {% endif %}
+        {% if not n.is_read %}
+        <button class="action-btn mark-read-btn" data-id="{{ n.id }}" title="Mark as Read">
+          <i class="fa-solid fa-check"></i>
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12">
+    <div class="custom-card text-center py-5 text-muted">
+      <i class="fa-regular fa-bell-slash fs-1 mb-3 d-block text-secondary"></i>
+      <h5>No Notifications Found</h5>
+      <p class="small mb-0">All public health advisories and notices are caught up.</p>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Broadcast Alert Modal -->
+<div class="modal fade" id="broadcastAlertModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content glass-modal">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-primary"><i class="fa-solid fa-bullhorn me-2"></i> Broadcast Public Health Alert</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('notifications.create') }}" method="POST">
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label">Alert Title <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="title" placeholder="e.g. Micro-Containment Declaration" required>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Category</label>
+              <select class="form-select" name="category">
+                <option value="Containment Zone">Containment Zone</option>
+                <option value="Emergency">Emergency</option>
+                <option value="Vaccination">Vaccination Drive</option>
+                <option value="New Case">New Case Alert</option>
+                <option value="General">General Notice</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Priority Level</label>
+              <select class="form-select" name="alert_level">
+                <option value="High">High (Red Banner)</option>
+                <option value="Medium">Medium (Warning)</option>
+                <option value="Low">Low (Informational)</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Alert Message <span class="text-danger">*</span></label>
+            <textarea class="form-control" name="message" rows="3" placeholder="Provide full details of the public advisory..." required></textarea>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Target Link URL (Optional)</label>
+            <input type="text" class="form-control" name="target_url" placeholder="e.g. /places or /cases" value="/places">
+          </div>
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary-custom shadow">
+            <i class="fa-solid fa-paper-plane me-1"></i> Broadcast Now
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

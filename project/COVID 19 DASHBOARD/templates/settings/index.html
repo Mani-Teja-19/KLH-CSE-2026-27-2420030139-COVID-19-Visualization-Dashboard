@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}System Settings{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <i class="fa-solid fa-sliders text-primary"></i> System Settings & Preferences
+    </h1>
+    <p class="page-subtitle">Configure application branding, automated alerts, containment thresholds, and audit trails</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="custom-card mb-4">
+      <div class="card-header-flex">
+        <div class="card-title-main">
+          <i class="fa-solid fa-gear text-primary"></i> General Configuration
+        </div>
+      </div>
+      <form action="{{ url_for('settings.index') }}" method="POST">
+        <div class="mb-3">
+          <label class="form-label">Application Branding Title</label>
+          <input type="text" class="form-control" name="app_title" value="{{ settings.get('app_title', 'COVID-19 Health Portal') }}" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Containment Zone Threshold (Active Cases)</label>
+          <input type="number" class="form-control" name="containment_threshold_cases" value="{{ settings.get('containment_threshold_cases', '5') }}" min="1" max="100">
+          <small class="text-muted">Places with active cases equal to or exceeding this threshold are highlighted as Hotspots.</small>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Live Metric Auto-Refresh Rate (Seconds)</label>
+          <select class="form-select" name="auto_refresh_seconds">
+            <option value="30" {% if settings.get('auto_refresh_seconds') == '30' %}selected{% endif %}>30 Seconds</option>
+            <option value="60" {% if settings.get('auto_refresh_seconds') == '60' %}selected{% endif %}>60 Seconds (1 Minute)</option>
+            <option value="300" {% if settings.get('auto_refresh_seconds') == '300' %}selected{% endif %}>300 Seconds (5 Minutes)</option>
+          </select>
+        </div>
+
+        <div class="form-check form-switch mb-4">
+          <input class="form-check-input" type="checkbox" id="emailSwitch" name="alert_email_notifications" {% if settings.get('alert_email_notifications') == 'true' %}checked{% endif %}>
+          <label class="form-check-label fw-semibold" for="emailSwitch">Automated Emergency Email Alerts to District Nodal Officers</label>
+        </div>
+
+        <div class="d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary-custom shadow">
+            <i class="fa-solid fa-floppy-disk me-1"></i> Save System Settings
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="custom-card mb-4">
+      <div class="card-header-flex">
+        <div class="card-title-main">
+          <i class="fa-solid fa-database text-teal"></i> Database Engine Status
+        </div>
+      </div>
+      <div class="list-group list-group-flush small">
+        <div class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted">Active Engine:</span>
+          <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Dual-Engine Active</span>
+        </div>
+        <div class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted">MySQL Support:</span>
+          <span class="fw-bold">PyMySQL 1.2+ Ready</span>
+        </div>
+        <div class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted">SQLite Fallback:</span>
+          <span class="text-success fw-bold">Synchronized</span>
+        </div>
+        <div class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted">PDF Engine:</span>
+          <span class="fw-bold">ReportLab 5.0+</span>
+        </div>
+        <div class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted">Excel Engine:</span>
+          <span class="fw-bold">OpenPyXL 3.1+</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

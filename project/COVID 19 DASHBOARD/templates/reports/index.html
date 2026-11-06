@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports & Exports Hub{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <i class="fa-solid fa-file-waveform text-primary"></i> Epidemiological Reports & Data Export
+    </h1>
+    <p class="page-subtitle">Generate official public health surveillance reports and export in PDF, Excel (.xlsx), CSV, and Print formats</p>
+  </div>
+  <!-- Quick Export Actions for Current View -->
+  <div class="d-flex align-items-center gap-2">
+    <a href="{{ url_for('reports.export_pdf', type=report_type, district=selected_district, status=selected_status) }}" class="btn btn-sm btn-danger shadow-sm">
+      <i class="fa-solid fa-file-pdf me-1"></i> Export PDF
+    </a>
+    <a href="{{ url_for('reports.export_excel', type=report_type, district=selected_district, status=selected_status) }}" class="btn btn-sm btn-success shadow-sm">
+      <i class="fa-solid fa-file-excel me-1"></i> Export Excel (.xlsx)
+    </a>
+    <a href="{{ url_for('reports.export_csv', type=report_type, district=selected_district, status=selected_status) }}" class="btn btn-sm btn-primary-custom shadow-sm">
+      <i class="fa-solid fa-file-csv me-1"></i> Export CSV
+    </a>
+    <a href="{{ url_for('reports.print_view', type=report_type, district=selected_district, status=selected_status) }}" target="_blank" class="btn btn-sm btn-secondary-custom shadow-sm">
+      <i class="fa-solid fa-print me-1"></i> Print View
+    </a>
+  </div>
+</div>
+
+<!-- Report Configuration Filter Card -->
+<div class="custom-card mb-4">
+  <form method="GET" action="{{ url_for('reports.index') }}" class="row g-3 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label">Select Report Category</label>
+      <select class="form-select" name="type" onchange="this.form.submit()">
+        <option value="place_wise" {% if report_type == 'place_wise' %}selected{% endif %}>Place-wise Containment & Population Report</option>
+        <option value="district_wise" {% if report_type == 'district_wise' %}selected{% endif %}>District-wise Epidemiological Matrix Report</option>
+        <option value="vaccination" {% if report_type == 'vaccination' %}selected{% endif %}>Vaccination Surveillance & Coverage Report</option>
+        <option value="active_cases" {% if report_type == 'active_cases' %}selected{% endif %}>Active Cases & Hospitalization Status Report</option>
+        <option value="recoveries" {% if report_type == 'recoveries' %}selected{% endif %}>Successful Recoveries & Discharge Report</option>
+        <option value="deaths" {% if report_type == 'deaths' %}selected{% endif %}>COVID-19 Mortality & Fatalities Report</option>
+        <option value="members" {% if report_type == 'members' %}selected{% endif %}>Registered Citizens & Medical Directory</option>
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label">Filter District</label>
+      <select class="form-select" name="district">
+        <option value="">All Districts</option>
+        {% for d in districts %}
+          <option value="{{ d }}" {% if selected_district == d %}selected{% endif %}>{{ d }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label">Status Filter</label>
+      <select class="form-select" name="status">
+        <option value="">All Statuses</option>
+        <option value="Affected" {% if selected_status == 'Affected' %}selected{% endif %}>Affected Only</option>
+        <option value="Not Affected" {% if selected_status == 'Not Affected' %}selected{% endif %}>Not Affected Only</option>
+        <option value="Active" {% if selected_status == 'Active' %}selected{% endif %}>Active Cases</option>
+        <option value="Recovered" {% if selected_status == 'Recovered' %}selected{% endif %}>Recovered Patients</option>
+      </select>
+    </div>
+
+    <div class="col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-primary-custom w-100 justify-content-center">
+        <i class="fa-solid fa-arrows-rotate"></i> Generate
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Report Summary Metrics Cards -->
+{% if summary %}
+<div class="row g-3 mb-4">
+  {% for k, v in summary.items() %}
+  <div class="col-lg-3 col-sm-6">
+    <div class="stat-card stat-info">
+      <div class="stat-content">
+        <div class="stat-label">{{ k }}</div>
+        <div class="stat-number fs-4 text-primary">{{ v }}</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Report Table Preview -->
+<div class="custom-table-card">
+  <div class="p-3 border-bottom d-flex align-items-center justify-content-between bg-body-tertiary">
+    <div class="fw-bold fs-6 text-primary">
+      <i class="fa-solid fa-file-contract me-2"></i> {{ title }}
+    </div>
+    <span class="badge bg-secondary rounded-pill">{{ rows|length }} Records</span>
+  </div>
+  <div class="table-responsive">
+    <table class="custom-table mb-0" id="reportPreviewTable">
+      <thead>
+        <tr>
+          {% for h in headers %}
+            <th>{{ h }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          {% for cell in r %}
+            <td>{{ cell if cell is not none else '-' }}</td>
+          {% endfor %}
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="{{ headers|length }}" class="text-center py-4 text-muted">No records match the selected report criteria.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

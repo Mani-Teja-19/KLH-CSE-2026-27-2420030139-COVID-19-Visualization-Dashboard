@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}Server Error{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-5 py-5 text-center">
+  <div class="col-lg-6">
+    <div class="custom-card p-5 shadow-lg">
+      <div class="brand-icon mx-auto mb-3 stat-danger" style="width: 72px; height: 72px; font-size: 32px;">
+        <i class="fa-solid fa-server"></i>
+      </div>
+      <h1 class="display-4 fw-bold text-danger mb-2">500</h1>
+      <h4 class="fw-bold mb-3">Internal System Exception</h4>
+      <p class="text-secondary mb-4">An unexpected error occurred while processing this epidemiological query. The transaction has been rolled back safely.</p>
+      <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary-custom shadow">
+        <i class="fa-solid fa-house me-2"></i> Return to Dashboard
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

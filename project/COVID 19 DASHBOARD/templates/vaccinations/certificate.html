@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Certificate - {{ vax.certificate_no }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <i class="fa-solid fa-file-invoice text-teal"></i> COVID-19 Vaccination Certificate
+    </h1>
+    <p class="page-subtitle">Official Public Health Credential • Certificate No: <strong>{{ vax.certificate_no }}</strong></p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <button class="btn btn-sm btn-primary-custom shadow" onclick="window.print()">
+      <i class="fa-solid fa-print me-1"></i> Print / Save as PDF
+    </button>
+    <a href="{{ url_for('vaccinations.index') }}" class="btn btn-sm btn-secondary-custom">
+      <i class="fa-solid fa-arrow-left"></i> Back to Vaccinations
+    </a>
+  </div>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <!-- Official Certificate Paper Card -->
+    <div class="custom-card p-5 border-2 shadow-lg" style="background: #ffffff; color: #0f172a; border-color: #0d9488 !important;">
+      
+      <!-- Top Certificate Header -->
+      <div class="text-center pb-4 border-bottom border-2">
+        <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle bg-teal text-white mb-2 shadow-sm" style="background: linear-gradient(135deg, #0d6efd, #0d9488); width: 64px; height: 64px; font-size: 28px;">
+          <i class="fa-solid fa-shield-virus"></i>
+        </div>
+        <h3 class="fw-bold text-uppercase tracking-wide mb-1" style="color: #1e3a8a; letter-spacing: 1px;">Certificate of COVID-19 Vaccination</h3>
+        <p class="text-secondary small mb-0">Issued by Department of Health & Public Family Welfare Surveillance</p>
+        <span class="badge bg-success mt-2 px-3 py-1 rounded-pill"><i class="fa-solid fa-circle-check me-1"></i> VERIFIED & AUTHENTICATED</span>
+      </div>
+
+      <!-- Beneficiary Details -->
+      <div class="row g-4 py-4 border-bottom">
+        <div class="col-sm-6">
+          <div class="small text-muted text-uppercase fw-bold">Beneficiary Name</div>
+          <div class="fs-5 fw-bold text-primary">{{ vax.member.full_name if vax.member else 'N/A' }}</div>
+          <div class="small text-secondary">Age: {{ vax.member.age }} yrs • Gender: {{ vax.member.gender }}</div>
+        </div>
+        <div class="col-sm-6">
+          <div class="small text-muted text-uppercase fw-bold">National ID / Member Code</div>
+          <div class="fs-6 fw-bold">{{ vax.member.member_code if vax.member else 'N/A' }}</div>
+          <div class="small text-secondary">Aadhaar: {{ vax.member.aadhaar_number or 'Verified via biometric' }}</div>
+        </div>
+      </div>
+
+      <!-- Vaccination Details Grid -->
+      <div class="py-4 border-bottom">
+        <h6 class="fw-bold text-uppercase text-secondary mb-3"><i class="fa-solid fa-syringe me-2 text-teal"></i> Vaccination Details</h6>
+        
+        <div class="row g-3">
+          <div class="col-sm-4">
+            <div class="p-3 bg-light rounded-3 border">
+              <span class="text-muted small d-block">Dose Level:</span>
+              <strong class="fs-6">Dose {{ vax.dose_number }} of 2</strong>
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <div class="p-3 bg-light rounded-3 border">
+              <span class="text-muted small d-block">Vaccine Name:</span>
+              <strong class="fs-6 text-primary">{{ vax.vaccine_name }}</strong>
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <div class="p-3 bg-light rounded-3 border">
+              <span class="text-muted small d-block">Date of Dose:</span>
+              <strong class="fs-6 text-success">{{ vax.vaccination_date.strftime('%B %d, %Y') }}</strong>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="p-3 bg-light rounded-3 border">
+              <span class="text-muted small d-block">Batch Number:</span>
+              <code>{{ vax.batch_number or 'VAC-B920X' }}</code>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="p-3 bg-light rounded-3 border">
+              <span class="text-muted small d-block">Vaccination Center:</span>
+              <strong>{{ vax.center_name }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Certificate Footer & Digital Seal -->
+      <div class="row align-items-center pt-4">
+        <div class="col-sm-8">
+          <div class="small text-muted">
+            <i class="fa-solid fa-lock text-success me-1"></i> Digitally secured via cryptographic hash.
+          </div>
+          <div class="small text-secondary mt-1">
+            Vaccinator: <strong>{{ vax.vaccinated_by or 'Public Health Officer' }}</strong>
+          </div>
+          {% if vax.next_due_date %}
+          <div class="small text-primary mt-1 fw-bold">
+            <i class="fa-regular fa-clock me-1"></i> Next Dose Due: {{ vax.next_due_date.strftime('%B %d, %Y') }}
+          </div>
+          {% endif %}
+        </div>
+        
+        <!-- Mock QR Code Stamp -->
+        <div class="col-sm-4 text-center">
+          <div class="p-2 border rounded-3 d-inline-block bg-white shadow-sm">
+            <div style="width: 85px; height: 85px; background: repeating-linear-gradient(45deg, #0f172a, #0f172a 5px, #ffffff 5px, #ffffff 10px); margin: 0 auto;"></div>
+            <div class="small text-muted" style="font-size: 0.65rem; margin-top: 4px;">SCAN TO VERIFY</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

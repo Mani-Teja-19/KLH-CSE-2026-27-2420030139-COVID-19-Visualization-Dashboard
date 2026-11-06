@@ -1,0 +1,113 @@
+<aside class="sidebar" id="appSidebar">
+  <!-- Sidebar Header -->
+  <div class="sidebar-header">
+    <div class="brand-icon">
+      <i class="fa-solid fa-virus-covid"></i>
+    </div>
+    <div class="brand-text">
+      <div class="brand-title">COVID-19</div>
+      <div class="brand-subtitle">SURVEILLANCE PORTAL</div>
+    </div>
+  </div>
+
+  <!-- Sidebar Body -->
+  <div class="sidebar-body">
+    <div class="sidebar-heading">Core Overview</div>
+    <ul class="sidebar-nav">
+      <li>
+        <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span class="nav-label">Dashboard</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('analytics.index') }}" class="nav-link {% if request.endpoint == 'analytics.index' %}active{% endif %}">
+          <i class="fa-solid fa-chart-line"></i>
+          <span class="nav-label">Charts & Analytics</span>
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-heading">Surveillance & Health</div>
+    <ul class="sidebar-nav">
+      <li>
+        <a href="{{ url_for('places.index') }}" class="nav-link {% if 'places' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-map-location-dot"></i>
+          <span class="nav-label">Place Management</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('members.index') }}" class="nav-link {% if 'members' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-users"></i>
+          <span class="nav-label">Member Management</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('cases.index') }}" class="nav-link {% if 'cases' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-bed-pulse"></i>
+          <span class="nav-label">COVID Cases</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('vaccinations.index') }}" class="nav-link {% if 'vaccinations' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-syringe"></i>
+          <span class="nav-label">Vaccination Management</span>
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-heading">Intelligence & Export</div>
+    <ul class="sidebar-nav">
+      <li>
+        <a href="{{ url_for('reports.index') }}" class="nav-link {% if 'reports' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-file-waveform"></i>
+          <span class="nav-label">Reports & Exports</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('notifications.index') }}" class="nav-link {% if 'notifications' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-bell"></i>
+          <span class="nav-label">Notifications</span>
+          {% if unread_notif_count > 0 %}
+            <span class="badge bg-danger rounded-pill ms-auto badge-label notif-badge-count">{{ unread_notif_count }}</span>
+          {% endif %}
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-heading">Administration</div>
+    <ul class="sidebar-nav">
+      <li>
+        <a href="{{ url_for('profile.index') }}" class="nav-link {% if 'profile' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-user-doctor"></i>
+          <span class="nav-label">Admin Profile</span>
+        </a>
+      </li>
+      {% if session.get('user_role') == 'Admin' %}
+      <li>
+        <a href="{{ url_for('settings.index') }}" class="nav-link {% if 'settings' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-sliders"></i>
+          <span class="nav-label">Settings</span>
+        </a>
+      </li>
+      {% endif %}
+      <li>
+        <a href="{{ url_for('auth.logout') }}" class="nav-link text-danger">
+          <i class="fa-solid fa-right-from-bracket text-danger"></i>
+          <span class="nav-label">Logout</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Sidebar Footer -->
+  <div class="sidebar-footer">
+    <div class="d-flex align-items-center gap-2">
+      <div class="pulse-dot pulse-green"></div>
+      <span class="small text-muted brand-text">System Online</span>
+    </div>
+    <button class="btn btn-sm btn-outline-secondary d-lg-none" id="mobileSidebarClose">
+      <i class="fa-solid fa-times"></i>
+    </button>
+  </div>
+</aside>

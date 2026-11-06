@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+
+{% block title %}Member Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <i class="fa-solid fa-users text-primary"></i> Member Management
+    </h1>
+    <p class="page-subtitle">Registered citizen directory, infection history, and vaccination surveillance records</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <button class="btn btn-sm btn-secondary-custom" onclick="exportTableToCSV('membersTable', 'members_directory')">
+      <i class="fa-solid fa-file-csv text-primary"></i> Export CSV
+    </button>
+    <a href="{{ url_for('members.create') }}" class="btn btn-sm btn-primary-custom shadow">
+      <i class="fa-solid fa-user-plus"></i> Register Member
+    </a>
+  </div>
+</div>
+
+<!-- Search & Advanced Filter Card -->
+<div class="custom-card mb-4">
+  <form method="GET" action="{{ url_for('members.index') }}" class="row g-3 align-items-end">
+    <div class="col-md-3">
+      <label class="form-label">Search Member / Aadhaar / Mobile</label>
+      <div class="input-group">
+        <span class="input-group-text bg-body-tertiary"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+        <input type="text" class="form-control" name="search" placeholder="Name, code, phone, Aadhaar..." value="{{ search }}">
+      </div>
+    </div>
+    
+    <div class="col-md-2">
+      <label class="form-label">COVID Status</label>
+      <select class="form-select" name="covid_status">
+        <option value="">All Statuses</option>
+        <option value="Active" {% if selected_covid == 'Active' %}selected{% endif %}>Active Case</option>
+        <option value="Recovered" {% if selected_covid == 'Recovered' %}selected{% endif %}>Recovered</option>
+        <option value="Negative" {% if selected_covid == 'Negative' %}selected{% endif %}>Negative</option>
+        <option value="Deceased" {% if selected_covid == 'Deceased' %}selected{% endif %}>Deceased</option>
+      </select>
+    </div>
+
+    <div class="col-md-2">
+      <label class="form-label">Vaccination Status</label>
+      <select class="form-select" name="vaccination_status">
+        <option value="">All Vaccination</option>
+        <option value="Fully Vaccinated" {% if selected_vax == 'Fully Vaccinated' %}selected{% endif %}>Fully Vaccinated</option>
+        <option value="Partially Vaccinated" {% if selected_vax == 'Partially Vaccinated' %}selected{% endif %}>Partially Vaccinated</option>
+        <option value="Not Vaccinated" {% if selected_vax == 'Not Vaccinated' %}selected{% endif %}>Not Vaccinated</option>
+      </select>
+    </div>
+
+    <div class="col-md-2">
+      <label class="form-label">Age Bracket</label>
+      <select class="form-select" name="age_group">
+        <option value="">All Ages</option>
+        <option value="0-17" {% if selected_age == '0-17' %}selected{% endif %}>0 - 17 yrs</option>
+        <option value="18-44" {% if selected_age == '18-44' %}selected{% endif %}>18 - 44 yrs</option>
+        <option value="45-59" {% if selected_age == '45-59' %}selected{% endif %}>45 - 59 yrs</option>
+        <option value="60+" {% if selected_age == '60+' %}selected{% endif %}>60+ yrs (Seniors)</option>
+      </select>
+    </div>
+
+    <div class="col-md-2">
+      <label class="form-label">Place / Area</label>
+      <select class="form-select" name="place_id">
+        <option value="">All Places</option>
+        {% for p in places %}
+          <option value="{{ p.id }}" {% if selected_place|string == p.id|string %}selected{% endif %}>{{ p.place_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-1 d-flex gap-1">
+      <button type="submit" class="btn btn-primary-custom w-100 justify-content-center" title="Apply Filters">
+        <i class="fa-solid fa-filter"></i>
+      </button>
+      <a href="{{ url_for('members.index') }}" class="btn btn-secondary-custom" title="Reset Filters">
+        <i class="fa-solid fa-rotate-left"></i>
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Members Table -->
+<div class="custom-table-card">
+  <div class="table-responsive">
+    <table class="custom-table mb-0" id="membersTable">
+      <thead>
+        <tr>
+          <th>Member ID</th>
+          <th>Citizen Profile</th>
+          <th>Age / Gender</th>
+          <th>Place & District</th>
+          <th>COVID Status</th>
+          <th>Vaccination</th>
+          <th>Vaccine Brand</th>
+          <th>Contact Info</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in members %}
+        <tr>
+          <td><span class="fw-bold text-muted">{{ m.member_code }}</span></td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="avatar-circle bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center rounded-circle" style="width: 36px; height: 36px;">
+                {{ m.full_name[:1] }}
+              </div>
+              <div>
+                <a href="{{ url_for('members.view', id=m.id) }}" class="fw-bold text-primary text-decoration-none">
+                  {{ m.full_name }}
+                </a>
+                <div class="small text-muted">{{ m.occupation or 'Citizen' }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div>{{ m.age }} yrs</div>
+            <div class="small text-muted">{{ m.gender }}</div>
+          </td>
+          <td>
+            <div>{{ m.place.place_name if m.place else 'Unassigned' }}</div>
+            <div class="small text-muted">{{ m.place.district if m.place else '-' }}</div>
+          </td>
+          <td>
+            {% if m.covid_status == 'Active' %}
+              <span class="badge-status badge-active"><span class="pulse-dot pulse-red"></span> Active</span>
+            {% elif m.covid_status == 'Recovered' %}
+              <span class="badge-status badge-recovered">Recovered</span>
+            {% elif m.covid_status == 'Deceased' %}
+              <span class="badge-status badge-deceased">Deceased</span>
+            {% else %}
+              <span class="badge-status badge-negative">Negative</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if m.vaccination_status == 'Fully Vaccinated' %}
+              <span class="badge-status badge-vax-full"><i class="fa-solid fa-check-double me-1"></i> Full</span>
+            {% elif m.vaccination_status == 'Partially Vaccinated' %}
+              <span class="badge-status badge-vax-partial"><i class="fa-solid fa-check me-1"></i> Partial</span>
+            {% else %}
+              <span class="badge-status badge-vax-none">None</span>
+            {% endif %}
+          </td>
+          <td><span class="fw-semibold text-secondary">{{ m.vaccine_name or '-' }}</span></td>
+          <td>
+            <div class="small"><i class="fa-solid fa-phone text-muted me-1"></i> {{ m.mobile_number }}</div>
+            {% if m.email %}
+              <div class="small text-muted text-truncate" style="max-width: 140px;">{{ m.email }}</div>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex align-items-center gap-1">
+              <a href="{{ url_for('members.view', id=m.id) }}" class="action-btn" title="View Health Identity Card">
+                <i class="fa-solid fa-id-card text-info"></i>
+              </a>
+              <a href="{{ url_for('members.edit', id=m.id) }}" class="action-btn" title="Edit Member">
+                <i class="fa-solid fa-user-pen text-primary"></i>
+              </a>
+              {% if session.get('user_role') == 'Admin' %}
+              <form action="{{ url_for('members.delete', id=m.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete member {{ m.full_name }}?');" class="d-inline">
+                <button type="submit" class="action-btn delete" title="Delete Member">
+                  <i class="fa-solid fa-trash text-danger"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9" class="text-center py-4 text-muted">No members found matching the specified filters.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

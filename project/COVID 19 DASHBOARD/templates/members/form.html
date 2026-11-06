@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if member %}Edit Member - {{ member.full_name }}{% else %}Register Member{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <i class="fa-solid fa-user-plus text-primary"></i> {% if member %}Edit Medical Profile{% else %}Citizen & Health Registration{% endif %}
+    </h1>
+    <p class="page-subtitle">Record personal demographics, infection history, vaccination records, and doctor remarks</p>
+  </div>
+  <a href="{{ url_for('members.index') }}" class="btn btn-sm btn-secondary-custom">
+    <i class="fa-solid fa-arrow-left"></i> Back to Directory
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    <div class="custom-card glass-card">
+      <form method="POST" action="{% if member %}{{ url_for('members.edit', id=member.id) }}{% else %}{{ url_for('members.create') }}{% endif %}" enctype="multipart/form-data">
+        
+        <!-- Section 1: Demographics -->
+        <h5 class="fw-bold text-primary mb-3 pb-2 border-bottom">
+          <i class="fa-solid fa-id-card me-2"></i> 1. Personal & Contact Information
+        </h5>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label for="full_name" class="form-label">Full Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="full_name" name="full_name" placeholder="e.g. Rahul Sharma" value="{{ member.full_name if member else '' }}" required>
+          </div>
+          <div class="col-md-3">
+            <label for="age" class="form-label">Age (Years) <span class="text-danger">*</span></label>
+            <input type="number" class="form-control" id="age" name="age" placeholder="e.g. 34" value="{{ member.age if member else '' }}" min="1" max="120" required>
+          </div>
+          <div class="col-md-3">
+            <label for="gender" class="form-label">Gender <span class="text-danger">*</span></label>
+            <select class="form-select" id="gender" name="gender" required>
+              <option value="Male" {% if member and member.gender == 'Male' %}selected{% endif %}>Male</option>
+              <option value="Female" {% if member and member.gender == 'Female' %}selected{% endif %}>Female</option>
+              <option value="Other" {% if member and member.gender == 'Other' %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <label for="dob" class="form-label">Date of Birth</label>
+            <input type="date" class="form-control" id="dob" name="dob" value="{{ member.dob.strftime('%Y-%m-%d') if member and member.dob else '' }}">
+          </div>
+          <div class="col-md-4">
+            <label for="mobile_number" class="form-label">Mobile Number <span class="text-danger">*</span></label>
+            <input type="tel" class="form-control" id="mobile_number" name="mobile_number" placeholder="e.g. 9876543210" value="{{ member.mobile_number if member else '' }}" required>
+          </div>
+          <div class="col-md-4">
+            <label for="email" class="form-label">Email Address</label>
+            <input type="email" class="form-control" id="email" name="email" placeholder="e.g. rahul@example.com" value="{{ member.email if member else '' }}">
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <label for="aadhaar_number" class="form-label">Aadhaar / National ID</label>
+            <input type="text" class="form-control" id="aadhaar_number" name="aadhaar_number" placeholder="XXXX XXXX XXXX" value="{{ member.aadhaar_number if member else '' }}">
+          </div>
+          <div class="col-md-4">
+            <label for="place_id" class="form-label">Place / Jurisdiction</label>
+            <select class="form-select" id="place_id" name="place_id">
+              <option value="">Select Place</option>
+              {% for p in places %}
+                <option value="{{ p.id }}" {% if member and member.place_id == p.id %}selected{% endif %}>
+                  {{ p.place_name }} ({{ p.district }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label for="occupation" class="form-label">Occupation</label>
+            <input type="text" class="form-control" id="occupation" name="occupation" placeholder="e.g. Healthcare Worker, Teacher" value="{{ member.occupation if member else '' }}">
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label for="address" class="form-label">Residential Address</label>
+          <textarea class="form-control" id="address" name="address" rows="2" placeholder="Full street address...">{{ member.address if member else '' }}</textarea>
+        </div>
+
+        <!-- Section 2: COVID Infection History -->
+        <h5 class="fw-bold text-danger mb-3 pb-2 border-bottom">
+          <i class="fa-solid fa-virus me-2"></i> 2. COVID-19 Clinical & Infection History
+        </h5>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <label for="covid_status" class="form-label">COVID Status <span class="text-danger">*</span></label>
+            <select class="form-select" id="covid_status" name="covid_status" required>
+              <option value="Negative" {% if member and member.covid_status == 'Negative' %}selected{% endif %}>Negative (No active infection)</option>
+              <option value="Active" {% if member and member.covid_status == 'Active' %}selected{% endif %}>Active (Positive / In Care)</option>
+              <option value="Recovered" {% if member and member.covid_status == 'Recovered' %}selected{% endif %}>Recovered</option>
+              <option value="Deceased" {% if member and member.covid_status == 'Deceased' %}selected{% endif %}>Deceased</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label for="infection_date" class="form-label">Date of Infection / Positive Test</label>
+            <input type="date" class="form-control" id="infection_date" name="infection_date" value="{{ member.infection_date.strftime('%Y-%m-%d') if member and member.infection_date else '' }}">
+          </div>
+          <div class="col-md-4">
+            <label for="recovery_date" class="form-label">Date of Recovery / Negative Test</label>
+            <input type="date" class="form-control" id="recovery_date" name="recovery_date" value="{{ member.recovery_date.strftime('%Y-%m-%d') if member and member.recovery_date else '' }}">
+          </div>
+        </div>
+
+        <!-- Section 3: Vaccination Details -->
+        <h5 class="fw-bold text-success mb-3 pb-2 border-bottom">
+          <i class="fa-solid fa-syringe me-2"></i> 3. Vaccination Surveillance Record
+        </h5>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <label for="vaccination_status" class="form-label">Vaccination Status</label>
+            <select class="form-select" id="vaccination_status" name="vaccination_status">
+              <option value="Not Vaccinated" {% if member and member.vaccination_status == 'Not Vaccinated' %}selected{% endif %}>Not Vaccinated</option>
+              <option value="Partially Vaccinated" {% if member and member.vaccination_status == 'Partially Vaccinated' %}selected{% endif %}>Partially Vaccinated (Dose 1)</option>
+              <option value="Fully Vaccinated" {% if member and member.vaccination_status == 'Fully Vaccinated' %}selected{% endif %}>Fully Vaccinated (2+ Doses)</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label for="vaccine_name" class="form-label">Vaccine Brand</label>
+            <select class="form-select" id="vaccine_name" name="vaccine_name">
+              <option value="">Select Brand</option>
+              <option value="Covishield" {% if member and member.vaccine_name == 'Covishield' %}selected{% endif %}>Covishield (AstraZeneca)</option>
+              <option value="Covaxin" {% if member and member.vaccine_name == 'Covaxin' %}selected{% endif %}>Covaxin (Bharat Biotech)</option>
+              <option value="Pfizer" {% if member and member.vaccine_name == 'Pfizer' %}selected{% endif %}>Pfizer-BioNTech</option>
+              <option value="Moderna" {% if member and member.vaccine_name == 'Moderna' %}selected{% endif %}>Moderna</option>
+              <option value="Sputnik V" {% if member and member.vaccine_name == 'Sputnik V' %}selected{% endif %}>Sputnik V</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label for="dose1_date" class="form-label">Dose 1 Date</label>
+            <input type="date" class="form-control" id="dose1_date" name="dose1_date" value="{{ member.dose1_date.strftime('%Y-%m-%d') if member and member.dose1_date else '' }}">
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <label for="dose2_date" class="form-label">Dose 2 Date</label>
+            <input type="date" class="form-control" id="dose2_date" name="dose2_date" value="{{ member.dose2_date.strftime('%Y-%m-%d') if member and member.dose2_date else '' }}">
+          </div>
+          <div class="col-md-4">
+            <label for="booster_date" class="form-label">Precaution / Booster Dose Date</label>
+            <input type="date" class="form-control" id="booster_date" name="booster_date" value="{{ member.booster_date.strftime('%Y-%m-%d') if member and member.booster_date else '' }}">
+          </div>
+          <div class="col-md-4">
+            <label for="hospital_name" class="form-label">Treating / Vaccination Hospital</label>
+            <input type="text" class="form-control" id="hospital_name" name="hospital_name" placeholder="e.g. City Apex Hospital" value="{{ member.hospital_name if member else '' }}">
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label for="doctor_name" class="form-label">Attending Doctor / Health Officer</label>
+            <input type="text" class="form-control" id="doctor_name" name="doctor_name" placeholder="e.g. Dr. Rajesh Kumar" value="{{ member.doctor_name if member else '' }}">
+          </div>
+          <div class="col-md-6">
+            <label for="medical_remarks" class="form-label">Medical Remarks / Comorbidities</label>
+            <input type="text" class="form-control" id="medical_remarks" name="medical_remarks" placeholder="e.g. Diabetic, Hypertension, SpO2 normal" value="{{ member.medical_remarks if member else '' }}">
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+          <a href="{{ url_for('members.index') }}" class="btn btn-secondary-custom">Cancel</a>
+          <button type="submit" class="btn btn-primary-custom shadow">
+            <i class="fa-solid fa-floppy-disk me-1"></i> {% if member %}Save Changes{% else %}Register Member{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

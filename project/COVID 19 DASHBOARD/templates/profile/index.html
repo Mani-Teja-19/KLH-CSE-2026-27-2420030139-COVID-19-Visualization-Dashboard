@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Profile{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <i class="fa-solid fa-user-doctor text-primary"></i> Administrative Profile & Security
+    </h1>
+    <p class="page-subtitle">Manage administrative credentials, official contact details, and account security</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Profile Overview Card -->
+  <div class="col-lg-4">
+    <div class="custom-card text-center p-4 mb-4">
+      <div class="avatar-circle bg-primary text-white fw-bold d-flex align-items-center justify-content-center rounded-circle mx-auto mb-3 shadow" style="width: 88px; height: 88px; font-size: 2.2rem;">
+        {{ user.full_name[:1] }}
+      </div>
+      <h4 class="fw-bold mb-1">{{ user.full_name }}</h4>
+      <p class="text-secondary small mb-2">@{{ user.username }}</p>
+      <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 rounded-pill mb-3">
+        <i class="fa-solid fa-shield-halved me-1"></i> {{ user.role }}
+      </span>
+
+      <div class="list-group list-group-flush text-start small border-top pt-3">
+        <div class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted">Email:</span>
+          <span class="fw-bold">{{ user.email }}</span>
+        </div>
+        <div class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted">Mobile:</span>
+          <span class="fw-bold">{{ user.phone or 'Not configured' }}</span>
+        </div>
+        <div class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted">Account Status:</span>
+          <span class="text-success fw-bold"><i class="fa-solid fa-circle-check"></i> Active</span>
+        </div>
+        <div class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted">Last Logged In:</span>
+          <span class="text-muted">{{ user.last_login.strftime('%b %d, %Y %H:%M') if user.last_login else 'Current Session' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forms Section -->
+  <div class="col-lg-8">
+    <!-- Edit Profile Form -->
+    <div class="custom-card mb-4">
+      <div class="card-header-flex">
+        <div class="card-title-main">
+          <i class="fa-solid fa-user-pen text-primary"></i> Edit Profile Information
+        </div>
+      </div>
+      <form action="{{ url_for('profile.index') }}" method="POST">
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Full Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="full_name" value="{{ user.full_name }}" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Email Address <span class="text-danger">*</span></label>
+            <input type="email" class="form-control" name="email" value="{{ user.email }}" required>
+          </div>
+        </div>
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label class="form-label">Mobile Number</label>
+            <input type="tel" class="form-control" name="phone" value="{{ user.phone or '' }}" placeholder="+91 9876543210">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Assigned Role</label>
+            <input type="text" class="form-control bg-body-tertiary" value="{{ user.role }}" readonly disabled>
+          </div>
+        </div>
+        <div class="d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary-custom shadow">
+            <i class="fa-solid fa-floppy-disk me-1"></i> Update Details
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Change Password Card -->
+    <div class="custom-card mb-4">
+      <div class="card-header-flex">
+        <div class="card-title-main">
+          <i class="fa-solid fa-key text-warning"></i> Change Password
+        </div>
+      </div>
+      <form action="{{ url_for('profile.change_password') }}" method="POST">
+        <div class="mb-3">
+          <label class="form-label">Current Password <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <input type="password" class="form-control" id="curr_pass" name="current_password" required>
+            <button class="btn btn-outline-secondary toggle-password-btn" type="button" data-target="curr_pass">
+              <i class="fa-regular fa-eye"></i>
+            </button>
+          </div>
+        </div>
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label class="form-label">New Password <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <input type="password" class="form-control" id="new_pass" name="new_password" required>
+              <button class="btn btn-outline-secondary toggle-password-btn" type="button" data-target="new_pass">
+                <i class="fa-regular fa-eye"></i>
+              </button>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Confirm New Password <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <input type="password" class="form-control" id="conf_pass" name="confirm_password" required>
+              <button class="btn btn-outline-secondary toggle-password-btn" type="button" data-target="conf_pass">
+                <i class="fa-regular fa-eye"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary-custom shadow">
+            <i class="fa-solid fa-shield-check me-1"></i> Update Password
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Recent User Audit Activity -->
+    <div class="custom-table-card">
+      <div class="p-3 border-bottom fw-bold text-primary">
+        <i class="fa-solid fa-clock-rotate-left me-2"></i> Recent Security & Action Log
+      </div>
+      <div class="table-responsive">
+        <table class="custom-table mb-0">
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>Module</th>
+              <th>Details</th>
+              <th>IP Address</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in user_logs %}
+            <tr>
+              <td><span class="fw-bold text-dark">{{ log.action }}</span></td>
+              <td><span class="badge bg-secondary rounded-pill">{{ log.module }}</span></td>
+              <td><small class="text-secondary">{{ log.details or '-' }}</small></td>
+              <td><code>{{ log.ip_address }}</code></td>
+              <td><small class="text-muted">{{ log.created_at.strftime('%b %d, %H:%M') if log.created_at else '' }}</small></td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" class="text-center py-3 text-muted">No recent logs recorded.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

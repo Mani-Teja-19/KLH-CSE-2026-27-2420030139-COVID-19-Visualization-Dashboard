@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ member.full_name }} - Health Identity Card{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <i class="fa-solid fa-id-card text-primary"></i> Citizen Health Identity Card
+    </h1>
+    <p class="page-subtitle">Unique Health Identifier: <strong class="text-primary">{{ member.member_code }}</strong></p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <button class="btn btn-sm btn-secondary-custom" onclick="window.print()">
+      <i class="fa-solid fa-print"></i> Print Health Card
+    </button>
+    <a href="{{ url_for('members.edit', id=member.id) }}" class="btn btn-sm btn-primary-custom">
+      <i class="fa-solid fa-pen-to-square"></i> Edit Profile
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Health Identity Badge Card -->
+  <div class="col-lg-4">
+    <div class="custom-card text-center p-4">
+      <div class="avatar-circle bg-primary text-white fw-bold d-flex align-items-center justify-content-center rounded-circle mx-auto mb-3 shadow" style="width: 84px; height: 84px; font-size: 2.2rem;">
+        {{ member.full_name[:1] }}
+      </div>
+      <h4 class="fw-bold mb-1">{{ member.full_name }}</h4>
+      <p class="text-secondary small mb-2">{{ member.occupation or 'Resident' }}</p>
+      
+      <div class="d-flex justify-content-center gap-2 mb-3">
+        {% if member.covid_status == 'Active' %}
+          <span class="badge-status badge-active"><span class="pulse-dot pulse-red"></span> COVID Positive</span>
+        {% elif member.covid_status == 'Recovered' %}
+          <span class="badge-status badge-recovered">COVID Recovered</span>
+        {% elif member.covid_status == 'Deceased' %}
+          <span class="badge-status badge-deceased">Deceased</span>
+        {% else %}
+          <span class="badge-status badge-negative">COVID Negative</span>
+        {% endif %}
+      </div>
+
+      <div class="list-group list-group-flush text-start small border-top pt-3">
+        <div class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted">Age / Gender:</span>
+          <span class="fw-bold">{{ member.age }} Years • {{ member.gender }}</span>
+        </div>
+        <div class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted">Mobile:</span>
+          <span class="fw-bold">{{ member.mobile_number }}</span>
+        </div>
+        <div class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted">Email:</span>
+          <span class="fw-bold">{{ member.email or 'N/A' }}</span>
+        </div>
+        <div class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted">Aadhaar:</span>
+          <span class="fw-bold">{{ member.aadhaar_number or 'Not provided' }}</span>
+        </div>
+        <div class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted">Jurisdiction:</span>
+          <span class="fw-bold">{{ member.place.place_name if member.place else 'N/A' }} ({{ member.place.district if member.place else '' }})</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Medical History & Vaccination Timeline -->
+  <div class="col-lg-8">
+    <!-- Vaccination Timeline Card -->
+    <div class="custom-card mb-4">
+      <div class="card-header-flex">
+        <div class="card-title-main">
+          <i class="fa-solid fa-syringe text-success"></i>
+          <span>Vaccination Passport Status</span>
+        </div>
+        {% if member.vaccination_status == 'Fully Vaccinated' %}
+          <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill">
+            <i class="fa-solid fa-check-double me-1"></i> Fully Protected
+          </span>
+        {% elif member.vaccination_status == 'Partially Vaccinated' %}
+          <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-1 rounded-pill">
+            <i class="fa-solid fa-clock me-1"></i> Dose 1 Completed
+          </span>
+        {% else %}
+          <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1 rounded-pill">
+            <i class="fa-solid fa-triangle-exclamation me-1"></i> Unvaccinated
+          </span>
+        {% endif %}
+      </div>
+
+      <div class="row g-3">
+        <!-- Dose 1 -->
+        <div class="col-md-4">
+          <div class="p-3 rounded-3 border {% if member.dose1_date %}bg-success-subtle bg-opacity-25 border-success{% else %}bg-body-tertiary{% endif %}">
+            <div class="fw-bold small text-muted">DOSE 1</div>
+            <div class="fw-bold fs-6 mt-1">{{ member.vaccine_name or 'N/A' }}</div>
+            <div class="small text-secondary mt-1">
+              {% if member.dose1_date %}
+                <i class="fa-solid fa-calendar-check text-success me-1"></i> {{ member.dose1_date.strftime('%B %d, %Y') }}
+              {% else %}
+                <span class="text-danger">Not Administered</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Dose 2 -->
+        <div class="col-md-4">
+          <div class="p-3 rounded-3 border {% if member.dose2_date %}bg-success-subtle bg-opacity-25 border-success{% else %}bg-body-tertiary{% endif %}">
+            <div class="fw-bold small text-muted">DOSE 2</div>
+            <div class="fw-bold fs-6 mt-1">{{ member.vaccine_name or 'N/A' }}</div>
+            <div class="small text-secondary mt-1">
+              {% if member.dose2_date %}
+                <i class="fa-solid fa-calendar-check text-success me-1"></i> {{ member.dose2_date.strftime('%B %d, %Y') }}
+              {% else %}
+                <span class="text-muted">Not Administered</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Booster -->
+        <div class="col-md-4">
+          <div class="p-3 rounded-3 border {% if member.booster_date %}bg-success-subtle bg-opacity-25 border-success{% else %}bg-body-tertiary{% endif %}">
+            <div class="fw-bold small text-muted">PRECAUTION / BOOSTER</div>
+            <div class="fw-bold fs-6 mt-1">{{ member.vaccine_name or 'N/A' }}</div>
+            <div class="small text-secondary mt-1">
+              {% if member.booster_date %}
+                <i class="fa-solid fa-calendar-check text-success me-1"></i> {{ member.booster_date.strftime('%B %d, %Y') }}
+              {% else %}
+                <span class="text-muted">Not Administered</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clinical Details Card -->
+    <div class="custom-card">
+      <div class="card-header-flex">
+        <div class="card-title-main">
+          <i class="fa-solid fa-notes-medical text-primary"></i>
+          <span>Clinical & Epidemiological Notes</span>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <div class="p-3 bg-body-tertiary rounded-3 border">
+            <span class="text-muted small d-block">Treating Hospital:</span>
+            <strong>{{ member.hospital_name or 'Not Assigned' }}</strong>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="p-3 bg-body-tertiary rounded-3 border">
+            <span class="text-muted small d-block">Attending Doctor:</span>
+            <strong>{{ member.doctor_name or 'Not Assigned' }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-3 bg-body-tertiary rounded-3 border">
+        <span class="text-muted small d-block mb-1">Medical Remarks & Observations:</span>
+        <p class="mb-0">{{ member.medical_remarks or 'No specific comorbidities or notes recorded for this patient.' }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

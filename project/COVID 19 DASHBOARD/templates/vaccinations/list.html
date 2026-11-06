@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+
+{% block title %}Vaccination Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <i class="fa-solid fa-syringe text-teal"></i> Vaccination Management
+    </h1>
+    <p class="page-subtitle">Vaccine distribution drive, dosage tracking (Dose 1, Dose 2, Booster), and certificate issuance</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <button class="btn btn-sm btn-secondary-custom" onclick="exportTableToCSV('vaccinationsTable', 'vaccinations_registry')">
+      <i class="fa-solid fa-file-csv text-primary"></i> Export CSV
+    </button>
+    <a href="{{ url_for('vaccinations.create') }}" class="btn btn-sm btn-primary-custom shadow">
+      <i class="fa-solid fa-plus"></i> Record Vaccination
+    </a>
+  </div>
+</div>
+
+<!-- Key Vaccination Metrics Header -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-3 col-sm-6">
+    <div class="stat-card stat-teal">
+      <div class="stat-icon-wrapper"><i class="fa-solid fa-syringe"></i></div>
+      <div class="stat-content">
+        <div class="stat-label">Total Doses Given</div>
+        <div class="stat-number text-teal">{{ total_doses }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3 col-sm-6">
+    <div class="stat-card stat-info">
+      <div class="stat-icon-wrapper"><i class="fa-solid fa-vial"></i></div>
+      <div class="stat-content">
+        <div class="stat-label">Dose 1 Administered</div>
+        <div class="stat-number text-info">{{ dose1_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3 col-sm-6">
+    <div class="stat-card stat-success">
+      <div class="stat-icon-wrapper"><i class="fa-solid fa-check-double"></i></div>
+      <div class="stat-content">
+        <div class="stat-label">Dose 2 Completed</div>
+        <div class="stat-number text-success">{{ dose2_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3 col-sm-6">
+    <div class="stat-card stat-purple">
+      <div class="stat-icon-wrapper"><i class="fa-solid fa-shield-virus"></i></div>
+      <div class="stat-content">
+        <div class="stat-label">Booster Doses</div>
+        <div class="stat-number text-purple">{{ booster_count }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="custom-card mb-4">
+  <form method="GET" action="{{ url_for('vaccinations.index') }}" class="row g-3 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label">Search Certificate / Member Name</label>
+      <div class="input-group">
+        <span class="input-group-text bg-body-tertiary"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+        <input type="text" class="form-control" name="search" placeholder="e.g. COV-VAX-1001 or member name..." value="{{ search }}">
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label">Dose Number</label>
+      <select class="form-select" name="dose">
+        <option value="">All Doses</option>
+        <option value="1" {% if selected_dose == '1' %}selected{% endif %}>Dose 1</option>
+        <option value="2" {% if selected_dose == '2' %}selected{% endif %}>Dose 2</option>
+        <option value="3" {% if selected_dose == '3' %}selected{% endif %}>Booster / Precaution</option>
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label">Vaccine Brand</label>
+      <select class="form-select" name="vaccine">
+        <option value="">All Brands</option>
+        <option value="Covishield" {% if selected_vaccine == 'Covishield' %}selected{% endif %}>Covishield</option>
+        <option value="Covaxin" {% if selected_vaccine == 'Covaxin' %}selected{% endif %}>Covaxin</option>
+        <option value="Pfizer" {% if selected_vaccine == 'Pfizer' %}selected{% endif %}>Pfizer-BioNTech</option>
+        <option value="Moderna" {% if selected_vaccine == 'Moderna' %}selected{% endif %}>Moderna</option>
+        <option value="Sputnik V" {% if selected_vaccine == 'Sputnik V' %}selected{% endif %}>Sputnik V</option>
+      </select>
+    </div>
+
+    <div class="col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-primary-custom w-100 justify-content-center">
+        <i class="fa-solid fa-filter"></i> Filter
+      </button>
+      <a href="{{ url_for('vaccinations.index') }}" class="btn btn-secondary-custom" title="Reset Filters">
+        <i class="fa-solid fa-rotate-left"></i>
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Vaccinations Table -->
+<div class="custom-table-card">
+  <div class="table-responsive">
+    <table class="custom-table mb-0" id="vaccinationsTable">
+      <thead>
+        <tr>
+          <th>Certificate No</th>
+          <th>Citizen Details</th>
+          <th>Dose Stage</th>
+          <th>Vaccine Brand</th>
+          <th>Date Given</th>
+          <th>Center / Hospital</th>
+          <th>Batch Number</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in vaccinations %}
+        <tr>
+          <td><span class="fw-bold text-teal">{{ v.certificate_no }}</span></td>
+          <td>
+            <a href="{{ url_for('members.view', id=v.member_id) }}" class="fw-bold text-decoration-none">
+              {{ v.member.full_name if v.member else 'N/A' }}
+            </a>
+            <div class="small text-muted">{{ v.member.age }} yrs • {{ v.member.gender }}</div>
+          </td>
+          <td>
+            {% if v.dose_number == 1 %}
+              <span class="badge bg-info-subtle text-info border rounded-pill">Dose 1</span>
+            {% elif v.dose_number == 2 %}
+              <span class="badge bg-success-subtle text-success border rounded-pill">Dose 2 (Full)</span>
+            {% else %}
+              <span class="badge bg-purple text-purple border rounded-pill">Booster</span>
+            {% endif %}
+          </td>
+          <td><span class="fw-bold">{{ v.vaccine_name }}</span></td>
+          <td>{{ v.vaccination_date.strftime('%b %d, %Y') }}</td>
+          <td>
+            <div>{{ v.center_name }}</div>
+            <div class="small text-muted">By: {{ v.vaccinated_by or 'Health Staff' }}</div>
+          </td>
+          <td><code class="small">{{ v.batch_number or 'VAC-STD' }}</code></td>
+          <td>
+            <a href="{{ url_for('vaccinations.certificate', id=v.id) }}" class="action-btn" title="View & Print Official Certificate">
+              <i class="fa-solid fa-file-certificate text-teal"></i>
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="text-center py-4 text-muted">No vaccination records found matching filters.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

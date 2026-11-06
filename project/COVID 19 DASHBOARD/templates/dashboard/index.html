@@ -1,0 +1,612 @@
+{% extends 'base.html' %}
+
+{% block title %}COVID-19 Health & State-wise Surveillance Dashboard{% endblock %}
+
+{% block content %}
+<!-- Emergency Containment Zone Alert Marquee -->
+{% if high_alerts %}
+<div class="emergency-ticker animate-fade-in mb-3">
+  <i class="fa-solid fa-triangle-exclamation text-danger fs-5"></i>
+  <span class="badge bg-danger">HIGH RISK ALERT</span>
+  <marquee behavior="scroll" direction="left" scrollamount="6" class="flex-1">
+    {% for alert in high_alerts %}
+      <span class="me-5"><strong>{{ alert.title }}:</strong> {{ alert.message }}</span>
+    {% endfor %}
+  </marquee>
+</div>
+{% endif %}
+
+<!-- ========================================================================= -->
+<!-- PAGE HEADER & GLOBAL QUICK ACTIONS -->
+<!-- ========================================================================= -->
+<div class="page-header mb-3">
+  <div>
+    <h1 class="page-title d-flex align-items-center gap-2">
+      <i class="fa-solid fa-virus-covid text-primary"></i>
+      <span>COVID-19 State-wise Visualization Dashboard</span>
+    </h1>
+    <p class="page-subtitle mb-0">
+      Epidemiological Dashboard &bull; Comprehensive public health monitoring, real-time state analysis, and verified demographic distribution
+    </p>
+  </div>
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    <button type="button" class="btn btn-sm btn-outline-primary shadow-sm" id="syncDatasetBtn" onclick="window.stateSurveillance.syncDataset()" title="Re-sync data from Covid Dashboard.xlsx">
+      <i class="fa-solid fa-arrows-rotate me-1"></i> Sync Dataset
+    </button>
+    <button type="button" class="btn btn-sm btn-secondary-custom shadow-sm" onclick="window.stateSurveillance.exportExcel()" title="Export state statistics to Excel">
+      <i class="fa-solid fa-file-excel text-success me-1"></i> Export Excel
+    </button>
+    <button type="button" class="btn btn-sm btn-secondary-custom shadow-sm" onclick="window.stateSurveillance.exportCSV()" title="Export state statistics to CSV">
+      <i class="fa-solid fa-file-csv text-primary me-1"></i> Export CSV
+    </button>
+    <a href="{{ url_for('places.create') }}" class="btn btn-sm btn-primary-custom shadow">
+      <i class="fa-solid fa-plus me-1"></i> Add Place
+    </a>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- STATE FILTER BAR -->
+<!-- ========================================================================= -->
+<div class="card border-0 shadow-sm rounded-3 mb-4 bg-body-tertiary">
+  <div class="card-body p-3">
+    <div class="row g-3 align-items-center">
+      <div class="col-lg-5 col-md-6">
+        <label for="stateFilterSelect" class="form-label small fw-bold text-muted mb-1 d-flex align-items-center gap-1">
+          <i class="fa-solid fa-filter text-primary"></i>
+          <span>Filter by State / Union Territory</span>
+        </label>
+        <div class="input-group">
+          <span class="input-group-text bg-body border-end-0">
+            <i class="fa-solid fa-location-dot text-primary"></i>
+          </span>
+          <select class="form-select border-start-0 fw-semibold" id="stateFilterSelect">
+            <option value="All" selected>All States & Union Territories (National Overview)</option>
+            {% for s_name in states_list %}
+              <option value="{{ s_name }}">{{ s_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="col-lg-4 col-md-6">
+        <label class="form-label small fw-bold text-muted mb-1 d-block">Active Surveillance Scope</label>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 fs-6 rounded-pill" id="activeStateScopeBadge">
+            All 36 States & UTs
+          </span>
+          <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-2 small rounded-pill" id="badgeRecoveryRate">
+            {{ state_summary.recovery_rate }}% Recovery
+          </span>
+          <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-2 small rounded-pill" id="badgeDeathRate">
+            {{ state_summary.death_rate }}% Fatality
+          </span>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-12 text-lg-end">
+        <div class="small text-muted">
+          <i class="fa-solid fa-database text-secondary me-1"></i>
+          Source: <span class="fw-bold text-dark">Covid Dashboard.xlsx</span>
+        </div>
+        <div class="text-muted" style="font-size: 0.75rem;">
+          Dynamic formulas applied &bull; Zero fake data
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- 8 DYNAMIC STATE-WISE SUMMARY CARDS -->
+<!-- ========================================================================= -->
+<div class="row g-3 mb-4">
+  <!-- 1. Total Population -->
+  <div class="col-xxl-3 col-lg-3 col-md-6 col-sm-6">
+    <div class="stat-card stat-info animate-fade-in delay-1 h-100">
+      <div class="stat-icon-wrapper">
+        <i class="fa-solid fa-users"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-label">Total Population</div>
+        <div class="stat-number stat-counter text-info" id="cardStatePopulation" data-count="{{ state_summary.total_population }}" data-current="{{ state_summary.total_population }}">
+          {{ "{:,}".format(state_summary.total_population) }}
+        </div>
+        <div class="stat-subtext text-info">
+          <i class="fa-solid fa-people-group"></i> Census Inhabitants
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Total Affected People (= Total Cases) -->
+  <div class="col-xxl-3 col-lg-3 col-md-6 col-sm-6">
+    <div class="stat-card stat-danger animate-fade-in delay-1 h-100">
+      <div class="stat-icon-wrapper">
+        <i class="fa-solid fa-virus"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-label">Total Affected People</div>
+        <div class="stat-number stat-counter text-danger" id="cardStateAffected" data-count="{{ state_summary.affected }}" data-current="{{ state_summary.affected }}">
+          {{ "{:,}".format(state_summary.affected) }}
+        </div>
+        <div class="stat-subtext text-danger">
+          <i class="fa-solid fa-stethoscope"></i> Formula: Total Cases
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Total Non-Affected People (= Population - Cases) -->
+  <div class="col-xxl-3 col-lg-3 col-md-6 col-sm-6">
+    <div class="stat-card stat-primary animate-fade-in delay-2 h-100">
+      <div class="stat-icon-wrapper">
+        <i class="fa-solid fa-shield-halved"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-label">Total Non-Affected People</div>
+        <div class="stat-number stat-counter text-primary" id="cardStateNonAffected" data-count="{{ state_summary.non_affected }}" data-current="{{ state_summary.non_affected }}">
+          {{ "{:,}".format(state_summary.non_affected) }}
+        </div>
+        <div class="stat-subtext text-primary">
+          <i class="fa-solid fa-shield"></i> Formula: Population - Total Cases
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Total Active Cases -->
+  <div class="col-xxl-3 col-lg-3 col-md-6 col-sm-6">
+    <div class="stat-card stat-warning animate-fade-in delay-2 h-100">
+      <div class="stat-icon-wrapper">
+        <i class="fa-solid fa-bed-pulse"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-label">Total Active Cases</div>
+        <div class="stat-number stat-counter text-warning" id="cardStateActive" data-count="{{ state_summary.active }}" data-current="{{ state_summary.active }}">
+          {{ "{:,}".format(state_summary.active) }}
+        </div>
+        <div class="stat-subtext text-warning">
+          <span class="pulse-dot pulse-amber"></span> Under Active Care
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Total Recovered Cases (= Discharged) -->
+  <div class="col-xxl-3 col-lg-3 col-md-6 col-sm-6">
+    <div class="stat-card stat-success animate-fade-in delay-3 h-100">
+      <div class="stat-icon-wrapper">
+        <i class="fa-solid fa-heart-pulse"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-label">Total Recovered Cases</div>
+        <div class="stat-number stat-counter text-success" id="cardStateRecovered" data-count="{{ state_summary.recovered }}" data-current="{{ state_summary.recovered }}">
+          {{ "{:,}".format(state_summary.recovered) }}
+        </div>
+        <div class="stat-subtext text-success">
+          <i class="fa-solid fa-arrow-trend-up"></i> Formula: Discharged Cases
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Total Deaths -->
+  <div class="col-xxl-3 col-lg-3 col-md-6 col-sm-6">
+    <div class="stat-card stat-danger animate-fade-in delay-3 h-100">
+      <div class="stat-icon-wrapper">
+        <i class="fa-solid fa-skull-crossbones"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-label">Total Deaths</div>
+        <div class="stat-number stat-counter text-danger" id="cardStateDeaths" data-count="{{ state_summary.deaths }}" data-current="{{ state_summary.deaths }}">
+          {{ "{:,}".format(state_summary.deaths) }}
+        </div>
+        <div class="stat-subtext text-danger">
+          <i class="fa-solid fa-chart-line-down"></i> Recorded Fatalities
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Total Vaccinated People -->
+  <div class="col-xxl-3 col-lg-3 col-md-6 col-sm-6">
+    <div class="stat-card stat-teal animate-fade-in delay-4 h-100">
+      <div class="stat-icon-wrapper">
+        <i class="fa-solid fa-syringe"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-label">Total Vaccinated People</div>
+        <div class="stat-number text-teal" id="cardStateVaccinated">
+          {% if state_summary.vaccination_data_available and state_summary.vaccinated is not none %}
+            {{ "{:,}".format(state_summary.vaccinated) }}
+          {% else %}
+            <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 fs-6">Not Available</span>
+          {% endif %}
+        </div>
+        <div class="stat-subtext text-muted" style="font-size: 0.72rem;">
+          <i class="fa-solid fa-circle-info"></i> Vaccination data not available
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. Total Non-Vaccinated People -->
+  <div class="col-xxl-3 col-lg-3 col-md-6 col-sm-6">
+    <div class="stat-card stat-rose animate-fade-in delay-4 h-100">
+      <div class="stat-icon-wrapper">
+        <i class="fa-solid fa-ban"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-label">Total Non-Vaccinated People</div>
+        <div class="stat-number text-danger" id="cardStateNonVaccinated">
+          {% if state_summary.vaccination_data_available and state_summary.non_vaccinated is not none %}
+            {{ "{:,}".format(state_summary.non_vaccinated) }}
+          {% else %}
+            <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 fs-6">Not Available</span>
+          {% endif %}
+        </div>
+        <div class="stat-subtext text-muted" style="font-size: 0.72rem;">
+          <i class="fa-solid fa-circle-info"></i> Vaccination data not available
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- 4 STATE-WISE INTERACTIVE CHARTS (CHART.JS) -->
+<!-- ========================================================================= -->
+<div class="row g-4 mb-4">
+  <!-- Chart 1: State-wise Affected vs Non-Affected (Bar Chart) -->
+  <div class="col-xl-7 col-lg-12">
+    <div class="custom-card h-100 shadow-sm">
+      <div class="card-header-flex">
+        <div class="card-title-main">
+          <i class="fa-solid fa-chart-column text-primary"></i>
+          <span>Chart 1: State-wise Affected vs Non-Affected Population</span>
+        </div>
+        <button class="action-btn" onclick="downloadChart('stateAffectedVsNonAffectedChart', 'state_affected_vs_non_affected')" title="Download Chart">
+          <i class="fa-solid fa-download"></i>
+        </button>
+      </div>
+      <div class="p-2 small text-muted">
+        Compares Affected People (Total Cases) and Non-Affected People (Population - Cases).
+      </div>
+      <div style="height: 350px; position: relative;">
+        <canvas id="stateAffectedVsNonAffectedChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart 2: State-wise Deaths (Bar Chart, with Sorting) -->
+  <div class="col-xl-5 col-lg-12">
+    <div class="custom-card h-100 shadow-sm">
+      <div class="card-header-flex">
+        <div class="card-title-main">
+          <i class="fa-solid fa-chart-bar text-danger"></i>
+          <span>Chart 2: State-wise Deaths</span>
+        </div>
+        <div class="d-flex align-items-center gap-1">
+          <!-- Sort Options -->
+          <div class="btn-group btn-group-sm" id="deathSortBtnGroup" role="group">
+            <button type="button" class="btn btn-outline-secondary active" data-sort="default" onclick="window.stateSurveillance.toggleDeathSort('default')" title="Default (Alphabetical)">
+              A-Z
+            </button>
+            <button type="button" class="btn btn-outline-secondary" data-sort="highest" onclick="window.stateSurveillance.toggleDeathSort('highest')" title="Sort Highest to Lowest Deaths">
+              <i class="fa-solid fa-arrow-down-wide-short text-danger"></i> High
+            </button>
+            <button type="button" class="btn btn-outline-secondary" data-sort="lowest" onclick="window.stateSurveillance.toggleDeathSort('lowest')" title="Sort Lowest to Highest Deaths">
+              <i class="fa-solid fa-arrow-up-short-wide text-success"></i> Low
+            </button>
+          </div>
+          <button class="action-btn" onclick="downloadChart('stateDeathsChart', 'state_deaths_chart')" title="Download Chart">
+            <i class="fa-solid fa-download"></i>
+          </button>
+        </div>
+      </div>
+      <div class="p-2 small text-muted">
+        Total fatalities recorded per state. Use the sorting toggle to view from highest to lowest.
+      </div>
+      <div style="height: 350px; position: relative;">
+        <canvas id="stateDeathsChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart 3: State-wise Active vs Recovered (Grouped Bar Chart) -->
+  <div class="col-xl-7 col-lg-12">
+    <div class="custom-card h-100 shadow-sm">
+      <div class="card-header-flex">
+        <div class="card-title-main">
+          <i class="fa-solid fa-chart-line text-warning"></i>
+          <span>Chart 3: State-wise Active vs Recovered Cases</span>
+        </div>
+        <button class="action-btn" onclick="downloadChart('stateActiveVsRecoveredChart', 'state_active_vs_recovered')" title="Download Chart">
+          <i class="fa-solid fa-download"></i>
+        </button>
+      </div>
+      <div class="p-2 small text-muted">
+        Grouped comparative distribution of Active Patients vs Discharged/Recovered Citizens.
+      </div>
+      <div style="height: 350px; position: relative;">
+        <canvas id="stateActiveVsRecoveredChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart 4: Vaccinated vs Non-Vaccinated (Doughnut Chart / Unavailable Notification) -->
+  <div class="col-xl-5 col-lg-12">
+    <div class="custom-card h-100 shadow-sm d-flex flex-column" id="stateVaccinationChartContainer">
+      <div class="card-header-flex">
+        <div class="card-title-main">
+          <i class="fa-solid fa-circle-notch text-teal"></i>
+          <span>Chart 4: Vaccinated vs Non-Vaccinated</span>
+        </div>
+        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill">Data Integrity</span>
+      </div>
+
+      <!-- Canvas for when genuine data is available -->
+      <div style="height: 320px; position: relative; display: none;" id="stateVaccinationCanvasWrapper">
+        <canvas id="stateVaccinationDoughnutChart"></canvas>
+      </div>
+
+      <!-- Informative Notice Container when vaccination data is not available -->
+      <div class="flex-grow-1 d-flex flex-column align-items-center justify-content-center p-4 text-center" id="stateVaccinationEmptyNotice">
+        <div class="rounded-circle bg-body-tertiary p-3 mb-3 border d-inline-flex">
+          <i class="fa-solid fa-syringe text-secondary fs-1 opacity-75"></i>
+        </div>
+        <h5 class="fw-bold mb-2">Vaccination Data Not Available</h5>
+        <p class="text-muted small mb-3" style="max-width: 380px;">
+          The imported dataset (<strong>Covid Dashboard.xlsx</strong>) does not contain vaccinated or non-vaccinated records. In accordance with strict data integrity standards, synthetic or fabricated values are not displayed.
+        </p>
+        <div class="alert alert-secondary border py-2 px-3 small d-flex align-items-center gap-2 mb-0">
+          <i class="fa-solid fa-shield-virus text-primary"></i>
+          <span>Database schema and UI components are ready. Doughnut chart will activate automatically once genuine vaccination data is provided.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- 5. STATE-WISE DATA TABLE WITH SEARCH, SORT, FILTER, PAGINATION & TOTALS -->
+<!-- ========================================================================= -->
+<div class="custom-table-card mb-4 shadow-sm">
+  <div class="p-3 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div>
+      <h5 class="fw-bold mb-1 d-flex align-items-center gap-2">
+        <i class="fa-solid fa-table-list text-primary"></i>
+        <span>State & Union Territory Epidemiological Registry</span>
+      </h5>
+      <div class="small text-muted">
+        Comprehensive verified records directly mapped from <strong>Covid Dashboard.xlsx</strong>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <!-- Search Input -->
+      <div class="input-group input-group-sm" style="min-width: 220px;">
+        <span class="input-group-text bg-body border-end-0">
+          <i class="fa-solid fa-magnifying-glass text-muted"></i>
+        </span>
+        <input type="text" class="form-control border-start-0" id="stateTableSearch" placeholder="Search state name...">
+      </div>
+
+      <!-- Page Size Selector -->
+      <div class="d-flex align-items-center gap-1">
+        <label for="statePageSizeSelect" class="small text-muted mb-0">Show:</label>
+        <select class="form-select form-select-sm" id="statePageSizeSelect" style="width: auto;">
+          <option value="10" selected>10</option>
+          <option value="20">20</option>
+          <option value="all">All</option>
+        </select>
+      </div>
+
+      <!-- Export Buttons -->
+      <button class="btn btn-sm btn-outline-success" onclick="window.stateSurveillance.exportExcel()" title="Export filtered rows to Excel">
+        <i class="fa-solid fa-file-excel me-1"></i> Excel
+      </button>
+      <button class="btn btn-sm btn-outline-primary" onclick="window.stateSurveillance.exportCSV()" title="Export filtered rows to CSV">
+        <i class="fa-solid fa-file-csv me-1"></i> CSV
+      </button>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 custom-table align-middle" id="stateDataTable">
+      <thead class="table-light">
+        <tr>
+          <th class="state-sortable-th cursor-pointer" data-col="state_name" title="Click to sort by State Name">
+            State / UT <i class="fa-solid fa-sort sort-icon ms-1"></i>
+          </th>
+          <th class="text-end state-sortable-th cursor-pointer" data-col="population" title="Click to sort by Population">
+            Population <i class="fa-solid fa-sort sort-icon ms-1"></i>
+          </th>
+          <th class="text-end state-sortable-th cursor-pointer text-danger" data-col="affected" title="Click to sort by Affected People">
+            Affected <i class="fa-solid fa-sort sort-icon ms-1"></i>
+          </th>
+          <th class="text-end state-sortable-th cursor-pointer text-info" data-col="non_affected" title="Click to sort by Non-Affected People">
+            Non-Affected <i class="fa-solid fa-sort sort-icon ms-1"></i>
+          </th>
+          <th class="text-end state-sortable-th cursor-pointer text-warning" data-col="active" title="Click to sort by Active Cases">
+            Active <i class="fa-solid fa-sort sort-icon ms-1"></i>
+          </th>
+          <th class="text-end state-sortable-th cursor-pointer text-success" data-col="recovered" title="Click to sort by Recovered Cases">
+            Recovered <i class="fa-solid fa-sort sort-icon ms-1"></i>
+          </th>
+          <th class="text-end state-sortable-th cursor-pointer text-danger" data-col="deaths" title="Click to sort by Deaths">
+            Deaths <i class="fa-solid fa-sort sort-icon ms-1"></i>
+          </th>
+          <th class="text-center" data-col="vaccinated">
+            Vaccinated
+          </th>
+          <th class="text-center" data-col="non_vaccinated">
+            Non-Vaccinated
+          </th>
+        </tr>
+      </thead>
+      <tbody id="stateDataTableBody">
+        <!-- Rendered dynamically by state_surveillance.js -->
+      </tbody>
+      <tfoot id="stateDataTableFoot" class="table-group-divider fw-bold bg-body-tertiary">
+        <!-- Totals row calculated and rendered dynamically -->
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- Pagination Footer -->
+  <div class="p-3 border-top d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <div class="small text-muted" id="stateTablePaginationInfo">
+      Showing entries
+    </div>
+    <nav>
+      <ul class="pagination pagination-sm mb-0" id="stateTablePaginationNav">
+        <!-- Page buttons dynamically rendered -->
+      </ul>
+    </nav>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- HOSPITAL INFRASTRUCTURE & RECENT CLINICAL ADMISSIONS (PRESERVED FEATURES) -->
+<!-- ========================================================================= -->
+<div class="row g-4 mb-4">
+  <!-- Recent COVID Cases Table -->
+  <div class="col-xl-8">
+    <div class="custom-table-card shadow-sm h-100">
+      <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+        <div class="fw-bold d-flex align-items-center gap-2">
+          <i class="fa-solid fa-bed-pulse text-danger"></i>
+          <span>Clinical Admissions & Quarantine Registry</span>
+        </div>
+        <a href="{{ url_for('cases.index') }}" class="small text-primary fw-semibold">View All Cases &rarr;</a>
+      </div>
+      <div class="table-responsive">
+        <table class="custom-table mb-0">
+          <thead>
+            <tr>
+              <th>Case Code</th>
+              <th>Patient Name</th>
+              <th>District / Place</th>
+              <th>Severity</th>
+              <th>Quarantine Status</th>
+              <th>Doctor</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in recent_cases %}
+            <tr>
+              <td><span class="fw-bold text-primary">{{ c.case_code }}</span></td>
+              <td>
+                <div class="fw-semibold">{{ c.member.full_name if c.member else 'N/A' }}</div>
+                <div class="small text-muted">{{ c.member.age }} yrs • {{ c.member.gender }}</div>
+              </td>
+              <td>{{ c.place.place_name if c.place else 'N/A' }} ({{ c.place.district if c.place else '' }})</td>
+              <td>
+                <span class="badge {% if c.severity == 'Critical' %}bg-danger{% elif c.severity == 'Severe' %}bg-warning text-dark{% elif c.severity == 'Moderate' %}bg-info{% else %}bg-secondary{% endif %} rounded-pill">
+                  {{ c.severity }}
+                </span>
+              </td>
+              <td>
+                {% if c.quarantine_status == 'ICU' %}
+                  <span class="badge-status badge-active"><span class="pulse-dot pulse-red"></span> ICU</span>
+                {% elif c.quarantine_status == 'Oxygen Support' %}
+                  <span class="badge-status badge-affected"><span class="pulse-dot pulse-amber"></span> Oxygen</span>
+                {% elif c.quarantine_status == 'Hospitalized' %}
+                  <span class="badge-status badge-vax-partial">Hospitalized</span>
+                {% elif c.quarantine_status == 'Home Isolation' %}
+                  <span class="badge-status badge-negative">Home Isolation</span>
+                {% elif c.quarantine_status == 'Discharged' %}
+                  <span class="badge-status badge-recovered">Discharged</span>
+                {% else %}
+                  <span class="badge-status badge-deceased">Deceased</span>
+                {% endif %}
+              </td>
+              <td><small class="text-secondary">{{ c.assigned_doctor or 'Duty Officer' }}</small></td>
+              <td>
+                <a href="{{ url_for('cases.view', id=c.id) }}" class="action-btn" title="View Details">
+                  <i class="fa-solid fa-eye"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hospital Infrastructure & Bed Capacity Card -->
+  <div class="col-xl-4">
+    <div class="custom-card h-100 shadow-sm">
+      <div class="card-header-flex">
+        <div class="card-title-main">
+          <i class="fa-solid fa-hospital text-teal"></i>
+          <span>Hospital Capacity & Beds</span>
+        </div>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">Live Network</span>
+      </div>
+
+      <div class="mb-3">
+        <div class="d-flex justify-content-between small fw-semibold mb-1">
+          <span>General Beds Occupancy</span>
+          <span>{{ stats.occupied_beds }} / {{ stats.total_beds }} ({{ stats.bed_occupancy_rate }}%)</span>
+        </div>
+        <div class="progress-custom">
+          <div class="progress-bar bg-primary progress-bar-animated-fill" data-width="{{ stats.bed_occupancy_rate }}%"></div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <div class="d-flex justify-content-between small fw-semibold mb-1">
+          <span>ICU Beds Occupancy</span>
+          <span class="text-danger fw-bold">{{ stats.occupied_icu }} / {{ stats.total_icu }} ({{ stats.icu_occupancy_rate }}%)</span>
+        </div>
+        <div class="progress-custom">
+          <div class="progress-bar bg-danger progress-bar-animated-fill" data-width="{{ stats.icu_occupancy_rate }}%"></div>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex justify-content-between small fw-semibold mb-1">
+          <span>Oxygen Reserves Ready</span>
+          <span class="text-success fw-bold">{{ stats.total_oxygen }} Units</span>
+        </div>
+        <div class="progress-custom">
+          <div class="progress-bar bg-success progress-bar-animated-fill" data-width="85%"></div>
+        </div>
+      </div>
+
+      <div class="border-top pt-3">
+        <div class="fw-bold small text-muted text-uppercase mb-2">Designated Care Centers</div>
+        <div class="d-flex flex-column gap-2" style="max-height: 180px; overflow-y: auto;">
+          {% for h in hospitals %}
+            <div class="p-2 rounded-3 bg-body-tertiary border d-flex justify-content-between align-items-center small">
+              <div>
+                <div class="fw-bold text-dark">{{ h.name }}</div>
+                <div class="text-muted" style="font-size: 0.75rem;">{{ h.district }} • Helpline: {{ h.helpline }}</div>
+              </div>
+              <span class="badge bg-secondary rounded-pill">{{ h.occupied_beds }}/{{ h.total_beds }} Beds</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- State Surveillance Controller Script -->
+<script src="{{ url_for('static', filename='js/state_surveillance.js') }}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Pass State Surveillance Data from Flask to Client Engine
+    const initialData = {
+      summary: {{ state_summary | tojson }},
+      charts: {{ state_charts_data | tojson }},
+      table: {{ state_table_data | tojson }}
+    };
+    window.stateSurveillance.init(initialData);
+  });
+</script>
+{% endblock %}

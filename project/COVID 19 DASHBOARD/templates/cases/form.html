@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if case %}Edit Case - {{ case.case_code }}{% else %}Admit COVID Case{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <i class="fa-solid fa-bed-pulse text-danger"></i> {% if case %}Update Case Record - {{ case.case_code }}{% else %}Admit New COVID-19 Patient{% endif %}
+    </h1>
+    <p class="page-subtitle">Track patient clinical severity, quarantine assignment, symptoms, and doctor observations</p>
+  </div>
+  <a href="{{ url_for('cases.index') }}" class="btn btn-sm btn-secondary-custom">
+    <i class="fa-solid fa-arrow-left"></i> Back to Cases List
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="custom-card glass-card">
+      <form method="POST" action="{% if case %}{{ url_for('cases.edit', id=case.id) }}{% else %}{{ url_for('cases.create') }}{% endif %}">
+        
+        {% if not case %}
+        <div class="mb-3">
+          <label for="member_id" class="form-label">Select Registered Citizen <span class="text-danger">*</span></label>
+          <select class="form-select" id="member_id" name="member_id" required>
+            <option value="">-- Choose Member --</option>
+            {% for m in members %}
+              <option value="{{ m.id }}">{{ m.full_name }} ({{ m.member_code }}) - Age: {{ m.age }} - {{ m.place.district if m.place else 'No District' }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% else %}
+        <div class="p-3 mb-3 bg-body-tertiary rounded-3 border">
+          <div class="row">
+            <div class="col-md-6">
+              <span class="text-muted small">Patient Name:</span>
+              <div class="fw-bold fs-6">{{ case.member.full_name if case.member else 'N/A' }}</div>
+            </div>
+            <div class="col-md-6">
+              <span class="text-muted small">Case Identifier:</span>
+              <div class="fw-bold text-primary">{{ case.case_code }}</div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="row g-3 mb-3">
+          {% if not case %}
+          <div class="col-md-6">
+            <label for="admission_date" class="form-label">Admission / Testing Date <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" id="admission_date" name="admission_date" required>
+          </div>
+          {% endif %}
+          <div class="col-md-6">
+            <label for="covid_variant" class="form-label">COVID Variant</label>
+            <select class="form-select" id="covid_variant" name="covid_variant">
+              <option value="Omicron BA.5" {% if case and case.covid_variant == 'Omicron BA.5' %}selected{% endif %}>Omicron BA.5</option>
+              <option value="JN.1 Variant" {% if case and case.covid_variant == 'JN.1 Variant' %}selected{% endif %}>JN.1 Subvariant</option>
+              <option value="Delta Plus" {% if case and case.covid_variant == 'Delta Plus' %}selected{% endif %}>Delta Plus</option>
+              <option value="Omicron XBB" {% if case and case.covid_variant == 'Omicron XBB' %}selected{% endif %}>Omicron XBB</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="ct_score" class="form-label">HRCT Severity Score</label>
+            <input type="text" class="form-control" id="ct_score" name="ct_score" placeholder="e.g. 12/25" value="{{ case.ct_score if case else '' }}">
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label for="severity" class="form-label">Clinical Severity</label>
+            <select class="form-select" id="severity" name="severity">
+              <option value="Mild" {% if case and case.severity == 'Mild' %}selected{% endif %}>Mild</option>
+              <option value="Moderate" {% if case and case.severity == 'Moderate' %}selected{% endif %}>Moderate</option>
+              <option value="Severe" {% if case and case.severity == 'Severe' %}selected{% endif %}>Severe</option>
+              <option value="Critical" {% if case and case.severity == 'Critical' %}selected{% endif %}>Critical</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="quarantine_status" class="form-label">Quarantine / Care Status</label>
+            <select class="form-select" id="quarantine_status" name="quarantine_status">
+              <option value="Home Isolation" {% if case and case.quarantine_status == 'Home Isolation' %}selected{% endif %}>Home Isolation</option>
+              <option value="Hospitalized" {% if case and case.quarantine_status == 'Hospitalized' %}selected{% endif %}>Hospitalized (General Ward)</option>
+              <option value="Oxygen Support" {% if case and case.quarantine_status == 'Oxygen Support' %}selected{% endif %}>Oxygen Support Ward</option>
+              <option value="ICU" {% if case and case.quarantine_status == 'ICU' %}selected{% endif %}>ICU (Intensive Care)</option>
+              <option value="Discharged" {% if case and case.quarantine_status == 'Discharged' %}selected{% endif %}>Discharged / Recovered</option>
+              <option value="Deceased" {% if case and case.quarantine_status == 'Deceased' %}selected{% endif %}>Deceased</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label for="ward_bed_no" class="form-label">Ward / Bed Number</label>
+            <input type="text" class="form-control" id="ward_bed_no" name="ward_bed_no" placeholder="e.g. Ward 3 - Bed 112" value="{{ case.ward_bed_no if case else '' }}">
+          </div>
+          <div class="col-md-6">
+            <label for="assigned_doctor" class="form-label">Attending Doctor</label>
+            <input type="text" class="form-control" id="assigned_doctor" name="assigned_doctor" placeholder="e.g. Dr. Rajesh Kumar" value="{{ case.assigned_doctor if case else '' }}">
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="symptoms" class="form-label">Symptoms Presented</label>
+          <input type="text" class="form-control" id="symptoms" name="symptoms" placeholder="e.g. Fever, Breathlessness, SpO2 92%" value="{{ case.symptoms if case else '' }}">
+        </div>
+
+        <div class="mb-4">
+          <label for="notes" class="form-label">Clinical Observations & Treatment Plan</label>
+          <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Medication administered, vitals progression...">{{ case.notes if case else '' }}</textarea>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+          <a href="{{ url_for('cases.index') }}" class="btn btn-secondary-custom">Cancel</a>
+          <button type="submit" class="btn btn-primary-custom shadow">
+            <i class="fa-solid fa-floppy-disk me-1"></i> {% if case %}Update Case Record{% else %}Admit Patient{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
